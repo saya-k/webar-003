@@ -5,7 +5,6 @@
     <meta name="viewport" content='width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=yes'>
     <title>Unity WebGL Player | TestImageAR</title>
     <link rel="stylesheet" href="TemplateData/style.css">
-
     <style>
         html{
             height: -webkit-fill-available;
@@ -114,8 +113,9 @@
 </head>
 <body>
     <!--IMAGETARGETS-->
+		<imagetarget id='Christmas snowflake' src='targets/Christmas%20snowflake.png'></imagetarget>
 
-    <video id="webcam-video" muted autoplay playsinline webkit-playsinline style="width:1px;position:absolute"></video>
+<video id="webcam-video" muted autoplay playsinline webkit-playsinline style="width:1px;position:absolute"></video>
     <!-- <video id="webcam-video" muted autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute"></video> -->
     <canvas id="video-canvas" style="width:100%; height:100%; object-fit:cover; position:absolute"></canvas>
     <div id="startARDiv" class="ctaDiv" style="display: none;">
@@ -187,9 +187,7 @@
                     StartAR();
                 }
             }
-
             initialize();
-
             var container = document.querySelector("#unity-container");
             var canvas = document.querySelector("#unity-canvas");
             var videoCanvases = document.querySelectorAll("#video-canvas");
@@ -250,7 +248,6 @@
                 if (!IsIOS()) {
                     return;
                 }
-
                 try {
                     var AudioContextClass = window.AudioContext || window.webkitAudioContext;
                     if (AudioContextClass) {
@@ -258,7 +255,6 @@
                         if (window.__iosAudioContext.state === "suspended") {
                             await WithTimeout(window.__iosAudioContext.resume(), 800);
                         }
-
                         var source = window.__iosAudioContext.createBufferSource();
                         source.buffer = window.__iosAudioContext.createBuffer(1, 1, 22050);
                         source.connect(window.__iosAudioContext.destination);
@@ -268,7 +264,6 @@
                 catch (err) {
                     console.warn("Failed to unlock iOS audio context", err);
                 }
-
                 try {
                     var video = document.querySelector("#webcam-video");
                     if (video) {
@@ -290,13 +285,11 @@
                 if (!IsIOS() || !url) {
                     return;
                 }
-
                 try {
                     window.__primedVideos = window.__primedVideos || {};
                     if (window.__primedVideos[url]) {
                         return;
                     }
-
                     var video = document.createElement("video");
                     video.muted = true;
                     video.defaultMuted = true;
@@ -316,16 +309,13 @@
                     document.body.appendChild(video);
                     window.__primedVideos[url] = video;
                     window.__trackedHtmlVideo = video;
-
                     if (video.load) {
                         video.load();
                     }
-
                     var playPromise = video.play();
                     if (playPromise && playPromise.then) {
                         await WithTimeout(playPromise, 1200);
                     }
-
                     try {
                         video.currentTime = 0;
                     }
@@ -345,18 +335,15 @@
                 var messageText = document.getElementById("trackedHtmlVideoMessageText");
                 var button = document.getElementById("trackedHtmlVideoButton");
                 var video = window.__trackedHtmlVideo;
-
                 if (!video) {
                     video = window.__primedVideos && window.__primedVideos[url]
                         ? window.__primedVideos[url]
                         : document.createElement("video");
                     window.__trackedHtmlVideo = video;
                 }
-
                 if (video.parentElement !== overlay) {
                     overlay.insertBefore(video, message);
                 }
-
                 video.setAttribute("playsinline", "");
                 video.setAttribute("webkit-playsinline", "");
                 video.playsInline = true;
@@ -375,14 +362,12 @@
                 video.style.transformOrigin = "center center";
                 video.style.opacity = "";
                 video.style.pointerEvents = "";
-
                 if (video.src !== new URL(url, document.baseURI).href) {
                     video.src = url;
                     if (video.load) {
                         video.load();
                     }
                 }
-
                 messageText.innerHTML = "Loading video, please wait...<br>视频加载中，请稍候";
                 message.style.display = "block";
                 button.style.display = "none";
@@ -392,25 +377,21 @@
                 video.onended = function () {
                     StopTrackedHtmlVideo();
                 };
-
                 overlay.style.display = "flex";
                 return { overlay, message, messageText, button, video };
             }
             window.PlayTrackedHtmlVideo = function(url, scale) {
                 var state = EnsureTrackedHtmlVideoOverlay(url, scale);
                 var video = state.video;
-
                 function showTapFallback() {
                     state.messageText.innerHTML = "Tap to play video<br>点击播放视频";
                     state.button.style.display = "inline-block";
                     state.message.style.display = "block";
                 }
-
                 function markPlaying() {
                     state.message.style.display = "none";
                     state.button.style.display = "none";
                 }
-
                 function playMutedFallback(err) {
                     console.warn("HTML tracked video play with audio failed; retrying muted", err);
                     video.muted = true;
@@ -426,17 +407,14 @@
                         markPlaying();
                     }
                 }
-
                 try {
                     video.currentTime = 0;
                 }
                 catch (err) {
                 }
-
                 video.defaultMuted = false;
                 video.muted = false;
                 video.volume = 1;
-
                 var playPromise = video.play();
                 if (playPromise && playPromise.then) {
                     playPromise.then(markPlaying).catch(playMutedFallback);
@@ -471,7 +449,6 @@
                     startButton.disabled = true;
                     startButton.innerText = "Starting... / 正在启动...";
                 }
-
                 var primeVideosPromise = PrimeTrackedVideosForIOS();
                 var webcamReady = await RequestWebcam();
                 if (!webcamReady) {
@@ -482,7 +459,6 @@
                     }
                     return;
                 }
-
                 await primeVideosPromise;
                 await UnlockIOSMedia();
                 
@@ -506,7 +482,6 @@
                     window.unityInstance = unityInstance;
                     ScheduleViewportRefresh();
                     setTimeout(() => window.dispatchEvent(new Event("resize")), 50);
-
                     loadingBar.style.display = "none";
                 }).catch((err) => {
                     console.error("Unity failed to start - ", err);
@@ -522,14 +497,12 @@
             }
             // Prefer the rear camera on mobile devices.
 		window.unityFacingMode = "environment"
-
             window.WEBCAM_SETTINGS = {
                 video: {
                     facingMode: unityFacingMode,
                 },
                 audio: false
             };
-
             window.requestingForPermissions = false;
             async function RequestWebcam(){
                 if (window.webcamStream && window.webcamStream.active) {
@@ -539,7 +512,6 @@
                     ShowError("Camera access is not available in this browser.<br>当前浏览器不支持摄像头访问。");
                     return false;
                 }
-
                 window.requestingForPermissions = true;
                 try{
                     window.webcamStream = await navigator.mediaDevices.getUserMedia(window.WEBCAM_SETTINGS);
@@ -555,18 +527,14 @@
                     return false;
                 }           
             }
-
             async function StartWebcam(){
                 console.log("StartWebcam")
-
                 while (window.requestingForPermissions) {
                     // Wait until requestingForPermissions becomes true.
                     console.log("Waiting for permissions...");
                     await new Promise(resolve => setTimeout(resolve, 100)); // Adjust the delay time as needed.
                 }
-
                 console.log("Got Permissions");
-
                 if(window.webcamStream)
                 {
                     const video = document.querySelector("#webcam-video");
@@ -574,7 +542,6 @@
                     try {
                         await arCamera.startWebcam(video);
                         console.log("Webcam started successfully");
-
                         window.unityInstance.SendMessage('ARCamera', 'OnStartWebcamSuccess');
                     }
                     catch(err){
@@ -594,7 +561,6 @@
                 var ctr = 0;
                 devices.forEach(mediaDevice => {
                     if (mediaDevice.kind === 'videoinput') {
-
                         if(window.unityFacingMode == 'environment' && !mediaDevice.label.includes('facing front')){
                             //back cam only
                             camDevices.push(mediaDevice);
@@ -638,11 +604,9 @@
                 //console.log(window.WEBCAM_SETTINGS);
                 iTracker.WEBCAM_NAME = select.options[select.selectedIndex].innerHTML;
             }
-
             async function FlipCam(){
                 arCamera.stopWebcam();
                 window.WEBCAM_SETTINGS.video.deviceId = '';
-
                 if(window.WEBCAM_SETTINGS.video.facingMode == 'user'){
                     window.WEBCAM_SETTINGS.video.facingMode = 'environment';
                     arCamera.setFlipped(false);
@@ -652,39 +616,30 @@
                     arCamera.setFlipped(true);
                 }
                 window.webcamStream = await navigator.mediaDevices.getUserMedia(window.WEBCAM_SETTINGS);
-
                 const video = document.querySelector("#webcam-video");
                 video.srcObject = webcamStream;
-
                 await arCamera.startWebcam(video);
             }
-
             function ShowError(error){
                 document.getElementById("errorDiv").style.display = "flex";
                 document.getElementById("errorText").innerHTML = error;
             }
-
             function ShowScreenshot(dataUrl){
                 document.getElementById("screenshotDiv").style.display = "flex";
                 document.getElementById("screenshotImg").src = dataUrl;
                 document.getElementById("screenshotImg").style.width = "80vw";
                 document.getElementById("screenshotImg").style.height = 80 / window.innerWidth * window.innerHeight + "vw";
             }
-
             function ShowConfirmUrl(url){
                 document.getElementById("confirmUrlDiv").style.display = "flex";
                 window.newUrlString = url;
                 document.getElementById("confirmUrlText").innerText = "Are you sure you want to visit " + url;                
             }
-
             window.ITRACKER_GLOBALS = {
                 //place global settings here
                 INTERNAL_SMOOTHFACTOR_POS: .075,
             }
             
-
     </script>
 </body>
 </html>
-
-
