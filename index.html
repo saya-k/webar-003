@@ -550,6 +550,42 @@
                 overlay.style.display = "flex";
                 return { overlay, message, messageText, button, video };
             }
+            function PlayChristmasNameIntro(onComplete) {
+                var done = false;
+                function finish() {
+                    if (done) {
+                        return;
+                    }
+                    done = true;
+                    if (typeof onComplete === "function") {
+                        onComplete();
+                    }
+                }
+                var name = window.GetChristmasChildName ? window.GetChristmasChildName() : "";
+                if (!name || !window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+                    finish();
+                    return;
+                }
+                try {
+                    window.speechSynthesis.cancel();
+                    var utterance = new SpeechSynthesisUtterance(name + "，圣诞快乐！");
+                    utterance.lang = "zh-CN";
+                    utterance.rate = 0.9;
+                    utterance.pitch = 0.85;
+                    utterance.volume = 1;
+                    utterance.onend = finish;
+                    utterance.onerror = function (err) {
+                        console.warn("Christmas name TTS failed", err);
+                        finish();
+                    };
+                    window.speechSynthesis.speak(utterance);
+                    setTimeout(finish, 3500);
+                }
+                catch (err) {
+                    console.warn("Christmas name TTS unavailable", err);
+                    finish();
+                }
+            }
             window.PlayTrackedHtmlVideo = function(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight) {
                 var state = EnsureTrackedHtmlVideoOverlay(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight);
                 var video = state.video;
@@ -577,23 +613,32 @@
                         markPlaying();
                     }
                 }
-                try {
-                    video.currentTime = 0;
+                function beginVideoPlayback() {
+                    try {
+                        video.currentTime = 0;
+                    }
+                    catch (err) {
+                    }
+                    video.defaultMuted = false;
+                    video.muted = false;
+                    video.volume = 1;
+                    var playPromise = video.play();
+                    if (playPromise && playPromise.then) {
+                        playPromise.then(markPlaying).catch(playMutedFallback);
+                    }
+                    else {
+                        markPlaying();
+                    }
                 }
-                catch (err) {
-                }
-                video.defaultMuted = false;
-                video.muted = false;
-                video.volume = 1;
-                var playPromise = video.play();
-                if (playPromise && playPromise.then) {
-                    playPromise.then(markPlaying).catch(playMutedFallback);
-                }
-                else {
-                    markPlaying();
-                }
+                state.messageText.innerHTML = "Calling Santa...<br>正在呼叫圣诞老人...";
+                state.message.style.display = "block";
+                state.button.style.display = "none";
+                PlayChristmasNameIntro(beginVideoPlayback);
             };
             window.StopTrackedHtmlVideo = function() {
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                }
                 var overlay = document.getElementById("trackedHtmlVideoOverlay");
                 var video = window.__trackedHtmlVideo;
                 if (video) {
