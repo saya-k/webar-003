@@ -140,6 +140,22 @@
             border: 2px solid rgba(127, 29, 29, 0.34);
             box-sizing: border-box;
         }
+        #santaEnvelopeButton.is-opening {
+            animation: santaEnvelopeOpen 0.62s ease forwards;
+        }
+        #santaEnvelopeButton.is-opening::before {
+            transform-origin: top center;
+            animation: santaEnvelopeFlap 0.62s ease forwards;
+        }
+        @keyframes santaEnvelopeOpen {
+            0% { transform: scale(1) translateY(0); opacity: 1; }
+            45% { transform: scale(1.08) translateY(-6px); opacity: 1; }
+            100% { transform: scale(0.84) translateY(-18px); opacity: 0; }
+        }
+        @keyframes santaEnvelopeFlap {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(72deg); }
+        }
         #santaEnvelopeButton span {
             position: absolute;
             left: 0;
@@ -270,6 +286,7 @@
         <div id="trackedHtmlVideoMessage">
             <div id="trackedHtmlVideoMessageText">Loading video, please wait...</div>
             <button id="trackedHtmlVideoButton" type="button" style="display:none">Play video</button>
+            <button id="santaEnvelopeButton" type="button" aria-label="Open Santa's message"><span>Open</span></button>
         </div>
     </div>
     <div id="unity-container" class="unity-mobile">
@@ -574,6 +591,8 @@
                 video.style.transformOrigin = "center center";
                 video.style.opacity = "";
                 video.style.pointerEvents = "";
+                video.style.display = "none";
+                video.pause();
                 if (video.src !== new URL(url, document.baseURI).href) {
                     video.src = url;
                     if (video.load) {
@@ -614,7 +633,7 @@
                 }
                 try {
                     window.speechSynthesis.cancel();
-                    var utterance = new SpeechSynthesisUtterance("Merry Christmas, " + name + "!");
+                    var utterance = new SpeechSynthesisUtterance(name + ", Merry Christmas!");
                     utterance.lang = "en-US";
                     utterance.rate = 0.88;
                     utterance.pitch = 0.75;
@@ -685,9 +704,15 @@
                     if (envelopeButton) {
                         envelopeButton.style.display = "block";
                         envelopeButton.onclick = function () {
-                            envelopeButton.style.display = "none";
-                            state.messageText.innerHTML = "Loading video, please wait...";
-                            beginVideoPlayback();
+                            envelopeButton.onclick = null;
+                            envelopeButton.classList.add("is-opening");
+                            state.messageText.innerHTML = "Opening Santa's message...";
+                            setTimeout(function () {
+                                envelopeButton.style.display = "none";
+                                envelopeButton.classList.remove("is-opening");
+                                state.messageText.innerHTML = "Loading video, please wait...";
+                                beginVideoPlayback();
+                            }, 650);
                         };
                     }
                     else {
