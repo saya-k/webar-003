@@ -109,6 +109,74 @@
             color: #111;
             font-size: 14px;
         }
+        #parentNameButton {
+            position: fixed;
+            right: 12px;
+            bottom: calc(12px + env(safe-area-inset-bottom));
+            z-index: 10001;
+            min-height: 34px;
+            max-width: min(58vw, 220px);
+            padding: 7px 13px;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.58);
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+        }
+        .parentNameCard {
+            width: min(86vw, 360px);
+            padding: 18px;
+            border-radius: 8px;
+            background: #fff;
+            color: #1b1b1b;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+        }
+        .parentNameTitle {
+            margin: 0 0 8px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .parentNameHelp {
+            margin: 0 0 14px;
+            color: #555;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        #childNameInput {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 42px;
+            padding: 9px 11px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        .parentNameActions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+        .parentNameActions button {
+            min-height: 36px;
+            padding: 7px 14px;
+            border: 0;
+            border-radius: 999px;
+            font-size: 14px;
+        }
+        #cancelChildNameButton {
+            background: #e7e7e7;
+            color: #222;
+        }
+        #saveChildNameButton {
+            background: #b31824;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -143,6 +211,18 @@
     </div>
     <div id="errorDiv" class="ctaDiv" style="display: none; background:#aaa">
         <p id="errorText" style="text-align: center; width:60vw; color:white"></p>
+    </div>
+    <button id="parentNameButton" type="button" onclick="OpenParentNamePanel()">设置姓名</button>
+    <div id="parentNameDiv" class="ctaDiv" style="display: none; background: rgba(0, 0, 0, 0.35); z-index: 10002;">
+        <div class="parentNameCard">
+            <p class="parentNameTitle">孩子姓名</p>
+            <p class="parentNameHelp">家长可在这里编辑姓名。保存后，后续圣诞老人祝福会读取这个名字。</p>
+            <input id="childNameInput" type="text" maxlength="24" autocomplete="name" placeholder="请输入孩子姓名">
+            <div class="parentNameActions">
+                <button id="cancelChildNameButton" type="button" onclick="CloseParentNamePanel()">取消</button>
+                <button id="saveChildNameButton" type="button" onclick="SaveChildName()">保存</button>
+            </div>
+        </div>
     </div>
     <div id="trackedHtmlVideoOverlay">
         <div id="trackedHtmlVideoMessage">
@@ -226,6 +306,84 @@
             }
             ScheduleViewportRefresh();
             var unityStarted = false;
+            var CHILD_NAME_STORAGE_KEY = "christmasChildName";
+            function NormalizeChildName(name) {
+                return (name || "").replace(/\s+/g, " ").trim().slice(0, 24);
+            }
+            window.GetChristmasChildName = function() {
+                try {
+                    return NormalizeChildName(localStorage.getItem(CHILD_NAME_STORAGE_KEY));
+                }
+                catch (err) {
+                    return "";
+                }
+            };
+            function SetChristmasChildName(name) {
+                var cleanName = NormalizeChildName(name);
+                try {
+                    if (cleanName) {
+                        localStorage.setItem(CHILD_NAME_STORAGE_KEY, cleanName);
+                    }
+                    else {
+                        localStorage.removeItem(CHILD_NAME_STORAGE_KEY);
+                    }
+                }
+                catch (err) {
+                    console.warn("Failed to save child name", err);
+                }
+                RefreshParentNameButton();
+                return cleanName;
+            }
+            function RefreshParentNameButton() {
+                var button = document.getElementById("parentNameButton");
+                if (!button) {
+                    return;
+                }
+                var name = window.GetChristmasChildName();
+                button.innerText = name ? "姓名: " + name : "设置姓名";
+                button.title = name ? "当前姓名: " + name : "设置孩子姓名";
+            }
+            function OpenParentNamePanel() {
+                var panel = document.getElementById("parentNameDiv");
+                var input = document.getElementById("childNameInput");
+                if (!panel || !input) {
+                    return;
+                }
+                input.value = window.GetChristmasChildName();
+                panel.style.display = "flex";
+                setTimeout(function () {
+                    input.focus();
+                    input.select();
+                }, 50);
+            }
+            function CloseParentNamePanel() {
+                var panel = document.getElementById("parentNameDiv");
+                if (panel) {
+                    panel.style.display = "none";
+                }
+            }
+            function SaveChildName() {
+                var input = document.getElementById("childNameInput");
+                SetChristmasChildName(input ? input.value : "");
+                CloseParentNamePanel();
+            }
+            function InitializeParentNameEditor() {
+                RefreshParentNameButton();
+                var input = document.getElementById("childNameInput");
+                if (input) {
+                    input.addEventListener("keydown", function (event) {
+                        if (event.key === "Enter") {
+                            event.preventDefault();
+                            SaveChildName();
+                        }
+                        else if (event.key === "Escape") {
+                            event.preventDefault();
+                            CloseParentNamePanel();
+                        }
+                    });
+                }
+            }
+            InitializeParentNameEditor();
             function IsIOS() {
                 return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
