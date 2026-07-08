@@ -191,9 +191,9 @@
         <select id="chooseCamSel" style="display: none;" onchange="SelectCam()"></select>
         <p id="startARMessage" class="startARMessage">
             This augmented reality experience requires access to your device's camera
-            <span class="zh">此增强现实体验需要访问您设备的摄像头</span>
+            
         </p>
-        <button id="startARButton" onclick="StartAR()" style="display:none">Tap to start / 点击开始</button>
+        <button id="startARButton" onclick="StartAR()" style="display:none">Tap to start</button>
     </div>
     <div id="screenshotDiv" style="display: none;" class="ctaDiv">
         <div style="position:relative; background-color:white; padding:10px; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3), 0 6px 20px 0 rgba(0, 0, 0, 0.25);">
@@ -213,22 +213,22 @@
     <div id="errorDiv" class="ctaDiv" style="display: none; background:#aaa">
         <p id="errorText" style="text-align: center; width:60vw; color:white"></p>
     </div>
-    <button id="parentNameButton" type="button" onclick="OpenParentNamePanel()" aria-label="设置孩子姓名">设置姓名</button>
+    <button id="parentNameButton" type="button" onclick="OpenParentNamePanel()" aria-label="Set child name">Set name</button>
     <div id="parentNameDiv" class="ctaDiv" style="display: none; background: rgba(0, 0, 0, 0.35); z-index: 10002;">
         <div class="parentNameCard">
-            <p class="parentNameTitle">孩子姓名</p>
-            <p class="parentNameHelp">家长可在这里编辑姓名。保存后，后续圣诞老人祝福会读取这个名字。</p>
-            <input id="childNameInput" type="text" maxlength="24" autocomplete="name" placeholder="请输入孩子姓名">
+            <p class="parentNameTitle">Child name</p>
+            <p class="parentNameHelp">Parents can enter the child's name here. Santa will use it in the greeting after the scan.</p>
+            <input id="childNameInput" type="text" maxlength="24" autocomplete="name" placeholder="Enter child name">
             <div class="parentNameActions">
-                <button id="cancelChildNameButton" type="button" onclick="CloseParentNamePanel()">取消</button>
-                <button id="saveChildNameButton" type="button" onclick="SaveChildName()">保存</button>
+                <button id="cancelChildNameButton" type="button" onclick="CloseParentNamePanel()">Cancel</button>
+                <button id="saveChildNameButton" type="button" onclick="SaveChildName()">Save</button>
             </div>
         </div>
     </div>
     <div id="trackedHtmlVideoOverlay">
         <div id="trackedHtmlVideoMessage">
-            <div id="trackedHtmlVideoMessageText">Loading video, please wait...<br>视频加载中，请稍候</div>
-            <button id="trackedHtmlVideoButton" type="button" style="display:none">Play video / 播放视频</button>
+            <div id="trackedHtmlVideoMessageText">Loading video, please wait...</div>
+            <button id="trackedHtmlVideoButton" type="button" style="display:none">Play video</button>
         </div>
     </div>
     <div id="unity-container" class="unity-mobile">
@@ -341,8 +341,8 @@
                     return;
                 }
                 var name = window.GetChristmasChildName();
-                button.innerText = name ? "姓名: " + name : "设置姓名";
-                button.title = name ? "当前姓名: " + name : "设置孩子姓名";
+                button.innerText = name ? "Name: " + name : "Set name";
+                button.title = name ? "Current name: " + name : "Set child name";
             }
             function OpenParentNamePanel() {
                 var panel = document.getElementById("parentNameDiv");
@@ -401,7 +401,7 @@
                 startDiv.style.display = "flex";
                 startButton.style.display = "block";
                 startButton.disabled = false;
-                startButton.innerText = buttonText || "Tap to start / 点击开始";
+                startButton.innerText = buttonText || "Tap to start";
             }
             async function UnlockIOSMedia() {
                 if (!IsIOS()) {
@@ -538,7 +538,7 @@
                         video.load();
                     }
                 }
-                messageText.innerHTML = "Loading video, please wait...<br>视频加载中，请稍候";
+                messageText.innerHTML = "Loading video, please wait...";
                 message.style.display = "block";
                 button.style.display = "none";
                 button.onclick = function () {
@@ -568,10 +568,10 @@
                 }
                 try {
                     window.speechSynthesis.cancel();
-                    var utterance = new SpeechSynthesisUtterance(name + "，圣诞快乐！");
-                    utterance.lang = "zh-CN";
-                    utterance.rate = 0.9;
-                    utterance.pitch = 0.85;
+                    var utterance = new SpeechSynthesisUtterance("Merry Christmas, " + name + "!");
+                    utterance.lang = "en-US";
+                    utterance.rate = 0.88;
+                    utterance.pitch = 0.75;
                     utterance.volume = 1;
                     utterance.onend = finish;
                     utterance.onerror = function (err) {
@@ -590,7 +590,7 @@
                 var state = EnsureTrackedHtmlVideoOverlay(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight);
                 var video = state.video;
                 function showTapFallback() {
-                    state.messageText.innerHTML = "Tap to play video<br>点击播放视频";
+                    state.messageText.innerHTML = "Tap to play video";
                     state.button.style.display = "inline-block";
                     state.message.style.display = "block";
                 }
@@ -630,7 +630,7 @@
                         markPlaying();
                     }
                 }
-                state.messageText.innerHTML = "Calling Santa...<br>正在呼叫圣诞老人...";
+                state.messageText.innerHTML = "Calling Santa...";
                 state.message.style.display = "block";
                 state.button.style.display = "none";
                 PlayChristmasNameIntro(beginVideoPlayback);
@@ -662,7 +662,7 @@
                 var startButton = document.getElementById("startARButton");
                 if (startButton) {
                     startButton.disabled = true;
-                    startButton.innerText = "Starting... / 正在启动...";
+                    startButton.innerText = "Starting...";
                 }
                 var primeVideosPromise = PrimeTrackedVideosForIOS();
                 var webcamReady = await RequestWebcam();
@@ -670,7 +670,7 @@
                     unityStarted = false;
                     if (startButton) {
                         startButton.disabled = false;
-                        startButton.innerText = "Tap to start / 点击开始";
+                        startButton.innerText = "Tap to start";
                     }
                     return;
                 }
@@ -700,11 +700,11 @@
                     loadingBar.style.display = "none";
                 }).catch((err) => {
                     console.error("Unity failed to start - ", err);
-                    ShowError("Failed to start the experience.<br>启动体验失败。");
+                    ShowError("Failed to start the experience.");
                     unityStarted = false;
                     if (startButton) {
                         startButton.disabled = false;
-                        startButton.innerText = "Tap to start / 点击开始";
+                        startButton.innerText = "Tap to start";
                     }
                     loadingBar.style.display = "none";
                 });
@@ -724,7 +724,7 @@
                     return true;
                 }
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    ShowError("Camera access is not available in this browser.<br>当前浏览器不支持摄像头访问。");
+                    ShowError("Camera access is not available in this browser.");
                     return false;
                 }
                 window.requestingForPermissions = true;
@@ -737,7 +737,7 @@
                 catch (err) {
                     //user denied camera permission - show error panel
                     console.error("getUserMedia error - " , err);
-                    ShowError("Failed to start the experience. Camera permission was denied.<br>启动失败：摄像头权限被拒绝。");
+                    ShowError("Failed to start the experience. Camera permission was denied.");
                     window.requestingForPermissions = false;
                     return false;
                 }           
