@@ -651,6 +651,13 @@
                     finish();
                 }
             }
+            window.PlayChristmasNameIntroForUnity = function(gameObjectName) {
+                PlayChristmasNameIntro(function () {
+                    if (window.unityInstance && gameObjectName) {
+                        window.unityInstance.SendMessage(gameObjectName, "OnChristmasNameIntroFinished", "");
+                    }
+                });
+            };
             window.PlayTrackedHtmlVideo = function(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight) {
                 var state = EnsureTrackedHtmlVideoOverlay(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight);
                 var video = state.video;
@@ -696,35 +703,10 @@
                         markPlaying();
                     }
                 }
-                function showEnvelopePrompt() {
-                    var envelopeButton = document.getElementById("santaEnvelopeButton");
-                    state.messageText.innerHTML = "A message from Santa is ready.";
-                    state.message.style.display = "block";
-                    state.button.style.display = "none";
-                    if (envelopeButton) {
-                        envelopeButton.style.display = "block";
-                        envelopeButton.onclick = function () {
-                            envelopeButton.onclick = null;
-                            envelopeButton.classList.add("is-opening");
-                            state.messageText.innerHTML = "Opening Santa's message...";
-                            setTimeout(function () {
-                                envelopeButton.style.display = "none";
-                                envelopeButton.classList.remove("is-opening");
-                                state.messageText.innerHTML = "Loading video, please wait...";
-                                beginVideoPlayback();
-                            }, 650);
-                        };
-                    }
-                    else {
-                        state.button.innerText = "Open";
-                        state.button.style.display = "inline-block";
-                        state.button.onclick = beginVideoPlayback;
-                    }
-                }
-                state.messageText.innerHTML = "Calling Santa...";
+                state.messageText.innerHTML = "Loading video, please wait...";
                 state.message.style.display = "block";
                 state.button.style.display = "none";
-                PlayChristmasNameIntro(showEnvelopePrompt);
+                beginVideoPlayback();
             };
             window.StopTrackedHtmlVideo = function() {
                 if (window.speechSynthesis) {
