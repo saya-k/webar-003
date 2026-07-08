@@ -651,7 +651,51 @@
                     finish();
                 }
             }
-            window.PlayChristmasNameIntroForUnity = function(gameObjectName) {
+            window.ShowChristmasPostcardTapTarget = function(gameObjectName) {
+                var tapTarget = document.getElementById("christmasPostcardTapTarget");
+                if (!tapTarget) {
+                    tapTarget = document.createElement("button");
+                    tapTarget.id = "christmasPostcardTapTarget";
+                    tapTarget.type = "button";
+                    tapTarget.setAttribute("aria-label", "Open Santa's postcard");
+                    tapTarget.style.position = "fixed";
+                    tapTarget.style.left = "0";
+                    tapTarget.style.top = "0";
+                    tapTarget.style.width = "100vw";
+                    tapTarget.style.height = "100vh";
+                    tapTarget.style.zIndex = "2147483647";
+                    tapTarget.style.border = "0";
+                    tapTarget.style.padding = "0";
+                    tapTarget.style.margin = "0";
+                    tapTarget.style.background = "rgba(0,0,0,0)";
+                    tapTarget.style.touchAction = "manipulation";
+                    document.body.appendChild(tapTarget);
+                }
+                tapTarget.style.display = "block";
+                tapTarget.__postcardOpened = false;
+                tapTarget.onclick = function(event) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    if (tapTarget.__postcardOpened) {
+                        return;
+                    }
+                    tapTarget.__postcardOpened = true;
+                    tapTarget.style.display = "none";
+                    if (window.unityInstance && gameObjectName) {
+                        window.unityInstance.SendMessage(gameObjectName, "OpenPostcardFromWeb", "");
+                    }
+                };
+                tapTarget.ontouchend = tapTarget.onclick;
+            };
+            window.HideChristmasPostcardTapTarget = function() {
+                var tapTarget = document.getElementById("christmasPostcardTapTarget");
+                if (tapTarget) {
+                    tapTarget.style.display = "none";
+                    tapTarget.onclick = null;
+                    tapTarget.ontouchend = null;
+                }
+            };            window.PlayChristmasNameIntroForUnity = function(gameObjectName) {
                 PlayChristmasNameIntro(function () {
                     if (window.unityInstance && gameObjectName) {
                         window.unityInstance.SendMessage(gameObjectName, "OnChristmasNameIntroFinished", "");
