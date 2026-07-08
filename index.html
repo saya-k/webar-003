@@ -113,7 +113,7 @@
             position: fixed;
             right: 12px;
             bottom: calc(12px + env(safe-area-inset-bottom));
-            z-index: 10001;
+            z-index: 90;
             min-height: 34px;
             max-width: min(58vw, 220px);
             padding: 7px 13px;
@@ -127,6 +127,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+            pointer-events: auto;
         }
         .parentNameCard {
             width: min(86vw, 360px);
@@ -212,7 +213,7 @@
     <div id="errorDiv" class="ctaDiv" style="display: none; background:#aaa">
         <p id="errorText" style="text-align: center; width:60vw; color:white"></p>
     </div>
-    <button id="parentNameButton" type="button" onclick="OpenParentNamePanel()">设置姓名</button>
+    <button id="parentNameButton" type="button" onclick="OpenParentNamePanel()" aria-label="设置孩子姓名">设置姓名</button>
     <div id="parentNameDiv" class="ctaDiv" style="display: none; background: rgba(0, 0, 0, 0.35); z-index: 10002;">
         <div class="parentNameCard">
             <p class="parentNameTitle">孩子姓名</p>
