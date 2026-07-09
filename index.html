@@ -209,6 +209,13 @@
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
             pointer-events: auto;
         }
+        #parentNameDiv.is-required {
+            background: rgba(0, 0, 0, 0.68) !important;
+            z-index: 10003 !important;
+        }
+        #parentNameDiv.is-required .parentNameCard {
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
         .parentNameCard {
             width: min(86vw, 360px);
             padding: 18px;
@@ -236,6 +243,17 @@
             border: 1px solid #bbb;
             border-radius: 6px;
             font-size: 16px;
+        }
+        #childNameError {
+            display: none;
+            margin: 9px 0 0;
+            color: #b31824;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+        #childNameInput.has-error {
+            border-color: #b31824;
+            box-shadow: 0 0 0 2px rgba(179, 24, 36, 0.16);
         }
         .parentNameActions {
             display: flex;
@@ -302,6 +320,7 @@
             <p class="parentNameTitle">Child name</p>
             <p class="parentNameHelp">Parents can enter the child's name here. Santa will use it in the greeting after the scan.</p>
             <input id="childNameInput" type="text" maxlength="24" autocomplete="name" placeholder="Enter child name">
+            <p id="childNameError">Please enter a child name to start.</p>
             <div class="parentNameActions">
                 <button id="cancelChildNameButton" type="button" onclick="CloseParentNamePanel()">Cancel</button>
                 <button id="saveChildNameButton" type="button" onclick="SaveChildName()">Save</button>
@@ -345,6 +364,9 @@
                 }
                 
                 iTracker.WEBCAM_NAME = "Default Camera";
+                if (!EnsureChristmasChildNameBeforeStart()) {
+                    return;
+                }
                 if (IsIOS()) {
                     ShowStartARPrompt();
                 }
@@ -408,8 +430,12 @@
             ScheduleViewportRefresh();
             var unityStarted = false;
             var CHILD_NAME_STORAGE_KEY = "christmasChildName";
+            var childNameRequired = false;
             function NormalizeChildName(name) {
                 return (name || "").replace(/\s+/g, " ").trim().slice(0, 24);
+            }
+            function HasChristmasChildName() {
+                return !!(window.GetChristmasChildName && window.GetChristmasChildName());
             }
             window.GetChristmasChildName = function() {
                 try {
@@ -444,13 +470,40 @@
                 button.innerText = name ? "Name: " + name : "Set name";
                 button.title = name ? "Current name: " + name : "Set child name";
             }
-            function OpenParentNamePanel() {
+            function SetChildNameError(visible) {
+                var input = document.getElementById("childNameInput");
+                var error = document.getElementById("childNameError");
+                if (input) {
+                    input.classList.toggle("has-error", !!visible);
+                }
+                if (error) {
+                    error.style.display = visible ? "block" : "none";
+                }
+            }
+            function OpenParentNamePanel(required) {
                 var panel = document.getElementById("parentNameDiv");
                 var input = document.getElementById("childNameInput");
                 if (!panel || !input) {
                     return;
                 }
+                childNameRequired = !!required;
+                panel.classList.toggle("is-required", childNameRequired);
+                var title = panel.querySelector(".parentNameTitle");
+                var help = panel.querySelector(".parentNameHelp");
+                var cancel = document.getElementById("cancelChildNameButton");
+                if (title) {
+                    title.innerText = childNameRequired ? "Enter child name" : "Child name";
+                }
+                if (help) {
+                    help.innerText = childNameRequired
+                        ? "Please enter the child's name before starting. Santa will use it in the greeting."
+                        : "Parents can enter the child's name here. Santa will use it in the greeting after the scan.";
+                }
+                if (cancel) {
+                    cancel.style.display = childNameRequired ? "none" : "";
+                }
                 input.value = window.GetChristmasChildName();
+                SetChildNameError(false);
                 panel.style.display = "flex";
                 setTimeout(function () {
                     input.focus();
@@ -458,15 +511,38 @@
                 }, 50);
             }
             function CloseParentNamePanel() {
+                if (childNameRequired && !HasChristmasChildName()) {
+                    SetChildNameError(true);
+                    return;
+                }
                 var panel = document.getElementById("parentNameDiv");
                 if (panel) {
                     panel.style.display = "none";
+                    panel.classList.remove("is-required");
                 }
+                childNameRequired = false;
+                SetChildNameError(false);
             }
             function SaveChildName() {
                 var input = document.getElementById("childNameInput");
-                SetChristmasChildName(input ? input.value : "");
+                var savedName = SetChristmasChildName(input ? input.value : "");
+                if (!savedName) {
+                    SetChildNameError(true);
+                    if (input) {
+                        input.focus();
+                    }
+                    return;
+                }
                 CloseParentNamePanel();
+                ShowStartARPrompt("Tap to start");
+            }
+            function EnsureChristmasChildNameBeforeStart() {
+                if (HasChristmasChildName()) {
+                    return true;
+                }
+                ShowStartARPrompt("Enter name first");
+                OpenParentNamePanel(true);
+                return false;
             }
             function InitializeParentNameEditor() {
                 RefreshParentNameButton();
@@ -500,7 +576,7 @@
                 var startButton = document.getElementById("startARButton");
                 startDiv.style.display = "flex";
                 startButton.style.display = "block";
-                startButton.disabled = false;
+                startButton.disabled = !HasChristmasChildName();
                 startButton.innerText = buttonText || "Tap to start";
             }
             async function UnlockIOSMedia() {
@@ -899,6 +975,9 @@
             };
             async function StartAR() {
                 if (unityStarted) {
+                    return;
+                }
+                if (!EnsureChristmasChildNameBeforeStart()) {
                     return;
                 }
                 unityStarted = true;
