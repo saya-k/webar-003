@@ -958,10 +958,34 @@
 		window.unityFacingMode = "environment"
             window.WEBCAM_SETTINGS = {
                 video: {
-                    facingMode: unityFacingMode,
+                    facingMode: { ideal: unityFacingMode },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30, max: 30 },
+                    focusMode: { ideal: "continuous" },
+                    exposureMode: { ideal: "continuous" },
+                    whiteBalanceMode: { ideal: "continuous" },
                 },
                 audio: false
             };
+            async function OptimizeCameraTrack(stream) {
+                try {
+                    var track = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+                    if (!track || !track.applyConstraints) {
+                        return;
+                    }
+                    await track.applyConstraints({
+                        advanced: [
+                            { focusMode: "continuous" },
+                            { exposureMode: "continuous" },
+                            { whiteBalanceMode: "continuous" }
+                        ]
+                    });
+                }
+                catch (err) {
+                    console.warn("Camera track optimization skipped", err);
+                }
+            }
             window.requestingForPermissions = false;
             async function RequestWebcam(){
                 if (window.webcamStream && window.webcamStream.active) {
@@ -974,6 +998,7 @@
                 window.requestingForPermissions = true;
                 try{
                     window.webcamStream = await navigator.mediaDevices.getUserMedia(window.WEBCAM_SETTINGS);
+                    await OptimizeCameraTrack(window.webcamStream);
                     console.log("Webcam access granted");
                     requestingForPermissions = false;
                     return true;
@@ -1075,6 +1100,7 @@
                     arCamera.setFlipped(true);
                 }
                 window.webcamStream = await navigator.mediaDevices.getUserMedia(window.WEBCAM_SETTINGS);
+                await OptimizeCameraTrack(window.webcamStream);
                 const video = document.querySelector("#webcam-video");
                 video.srcObject = webcamStream;
                 await arCamera.startWebcam(video);
@@ -1097,6 +1123,7 @@
             window.ITRACKER_GLOBALS = {
                 //place global settings here
                 INTERNAL_SMOOTHFACTOR_POS: .075,
+                DETECTOR: "SIFT",
             }
             
     </script>
