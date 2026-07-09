@@ -445,8 +445,8 @@
             function GetChristmasSpeakableName(name) {
                 var cleanName = NormalizeChildName(name);
                 var pronunciationMap = {
-                    "gaga": "Gah-gah",
-                    "saya": "Sah-yah"
+                    "gaga": "ga ga",
+                    "saya": "sah yah"
                 };
                 return cleanName.split(" ").map(function (part) {
                     var lettersOnly = part.replace(/[^A-Za-z]/g, "");
@@ -870,7 +870,9 @@
                     GetChristmasEnglishVoice();
                     setTimeout(function () {
                         SpeakChristmasLine("Hey!", { rate: 0.48, pitch: 0.78, timeout: 2500 }, function () {
-                            SpeakChristmasLine(spokenName + ", Merry Christmas!", { rate: 0.82, pitch: 0.75, timeout: 4500 }, finish);
+                            SpeakChristmasLine(spokenName + ".", { rate: 0.72, pitch: 0.75, timeout: 2500 }, function () {
+                                SpeakChristmasLine("Merry Christmas!", { rate: 0.88, pitch: 0.75, timeout: 3000 }, finish);
+                            });
                         });
                     }, 500);
                     setTimeout(finish, 7000);
