@@ -563,6 +563,12 @@
                 if (!trackerInitialized) {
                     initialize();
                 }
+                else if (unityStarted) {
+                    var startDiv = document.getElementById("startARDiv");
+                    if (startDiv) {
+                        startDiv.style.display = "none";
+                    }
+                }
                 else {
                     ShowStartARPrompt("Tap to start");
                 }
