@@ -192,7 +192,7 @@
         #parentNameButton {
             position: fixed;
             right: 12px;
-            bottom: calc(12px + env(safe-area-inset-bottom));
+            top: calc(12px + env(safe-area-inset-top));
             z-index: 90;
             min-height: 34px;
             max-width: min(58vw, 220px);
@@ -349,6 +349,13 @@
     <script src="Build/ar-圣诞.loader.js"></script>
     <script>
             var initialize = async() =>{
+                if (initializingExperience || trackerInitialized) {
+                    return;
+                }
+                if (!EnsureChristmasChildNameBeforeStart()) {
+                    return;
+                }
+                initializingExperience = true;
                 var unityCanvas = document.querySelector("#unity-canvas");
                 var videoCanvas = document.querySelector("#video-canvas");
                 window.arCamera = new ARCamera(unityCanvas, videoCanvas);
@@ -360,13 +367,13 @@
                 catch{
                     console.error("Failed to initialize ImageTracker. Are you missing opencv.js? " + error);
                     ShowError("Failed to initialize the experience.");
+                    initializingExperience = false;
                     return;
                 }
                 
+                trackerInitialized = true;
+                initializingExperience = false;
                 iTracker.WEBCAM_NAME = "Default Camera";
-                if (!EnsureChristmasChildNameBeforeStart()) {
-                    return;
-                }
                 if (IsIOS()) {
                     ShowStartARPrompt();
                 }
@@ -374,7 +381,6 @@
                     StartAR();
                 }
             }
-            initialize();
             var container = document.querySelector("#unity-container");
             var canvas = document.querySelector("#unity-canvas");
             var videoCanvases = document.querySelectorAll("#video-canvas");
@@ -429,10 +435,30 @@
             }
             ScheduleViewportRefresh();
             var unityStarted = false;
+            var trackerInitialized = false;
+            var initializingExperience = false;
             var CHILD_NAME_STORAGE_KEY = "christmasChildName";
             var childNameRequired = false;
             function NormalizeChildName(name) {
                 return (name || "").replace(/\s+/g, " ").trim().slice(0, 24);
+            }
+            function GetChristmasSpeakableName(name) {
+                var cleanName = NormalizeChildName(name);
+                var pronunciationMap = {
+                    "gaga": "Gah-gah",
+                    "saya": "Sah-yah"
+                };
+                return cleanName.split(" ").map(function (part) {
+                    var lettersOnly = part.replace(/[^A-Za-z]/g, "");
+                    var key = lettersOnly.toLowerCase();
+                    if (pronunciationMap[key]) {
+                        return pronunciationMap[key];
+                    }
+                    if (/^[A-Za-z]+$/.test(part)) {
+                        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+                    }
+                    return part;
+                }).join(" ");
             }
             function HasChristmasChildName() {
                 return !!(window.GetChristmasChildName && window.GetChristmasChildName());
@@ -534,7 +560,12 @@
                     return;
                 }
                 CloseParentNamePanel();
-                ShowStartARPrompt("Tap to start");
+                if (!trackerInitialized) {
+                    initialize();
+                }
+                else {
+                    ShowStartARPrompt("Tap to start");
+                }
             }
             function EnsureChristmasChildNameBeforeStart() {
                 if (HasChristmasChildName()) {
@@ -561,6 +592,7 @@
                 }
             }
             InitializeParentNameEditor();
+            initialize();
             function IsIOS() {
                 return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -832,12 +864,13 @@
                     finish();
                     return;
                 }
+                var spokenName = GetChristmasSpeakableName(name);
                 try {
                     window.speechSynthesis.cancel();
                     GetChristmasEnglishVoice();
                     setTimeout(function () {
                         SpeakChristmasLine("Hey!", { rate: 0.48, pitch: 0.78, timeout: 2500 }, function () {
-                            SpeakChristmasLine(name + ", Merry Christmas!", { rate: 0.88, pitch: 0.75, timeout: 4000 }, finish);
+                            SpeakChristmasLine(spokenName + ", Merry Christmas!", { rate: 0.82, pitch: 0.75, timeout: 4500 }, finish);
                         });
                     }, 500);
                     setTimeout(finish, 7000);
