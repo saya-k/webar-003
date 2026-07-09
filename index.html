@@ -615,6 +615,89 @@
                 overlay.style.display = "flex";
                 return { overlay, message, messageText, button, video };
             }
+            var christmasSpeechPrimed = false;
+            var christmasSpeechVoice = null;
+            function GetChristmasEnglishVoice() {
+                if (!window.speechSynthesis || !window.speechSynthesis.getVoices) {
+                    return null;
+                }
+                var voices = window.speechSynthesis.getVoices() || [];
+                if (christmasSpeechVoice && voices.indexOf(christmasSpeechVoice) >= 0) {
+                    return christmasSpeechVoice;
+                }
+                christmasSpeechVoice = voices.find(function (voice) { return /en[-_]?US/i.test(voice.lang || ""); })
+                    || voices.find(function (voice) { return /^en/i.test(voice.lang || ""); })
+                    || voices[0]
+                    || null;
+                return christmasSpeechVoice;
+            }
+            function WarmChristmasSpeech() {
+                if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+                    return;
+                }
+                GetChristmasEnglishVoice();
+                if (christmasSpeechPrimed) {
+                    return;
+                }
+                christmasSpeechPrimed = true;
+                try {
+                    var warmup = new SpeechSynthesisUtterance(" ");
+                    warmup.lang = "en-US";
+                    warmup.volume = 0.01;
+                    warmup.rate = 1;
+                    var voice = GetChristmasEnglishVoice();
+                    if (voice) {
+                        warmup.voice = voice;
+                    }
+                    window.speechSynthesis.speak(warmup);
+                }
+                catch (err) {
+                    console.warn("Christmas speech warmup skipped", err);
+                }
+            }
+            function SpeakChristmasLine(text, options, onComplete) {
+                var finished = false;
+                function complete() {
+                    if (finished) {
+                        return;
+                    }
+                    finished = true;
+                    if (typeof onComplete === "function") {
+                        onComplete();
+                    }
+                }
+                try {
+                    var utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = "en-US";
+                    utterance.rate = options && options.rate ? options.rate : 1;
+                    utterance.pitch = options && options.pitch ? options.pitch : 1;
+                    utterance.volume = 1;
+                    var voice = GetChristmasEnglishVoice();
+                    if (voice) {
+                        utterance.voice = voice;
+                    }
+                    utterance.onend = complete;
+                    utterance.onerror = function (err) {
+                        console.warn("Christmas TTS line failed", err);
+                        complete();
+                    };
+                    window.speechSynthesis.speak(utterance);
+                    setTimeout(complete, options && options.timeout ? options.timeout : 4000);
+                }
+                catch (err) {
+                    console.warn("Christmas TTS unavailable", err);
+                    complete();
+                }
+            }
+            if (window.speechSynthesis) {
+                window.speechSynthesis.onvoiceschanged = function () {
+                    GetChristmasEnglishVoice();
+                };
+                setTimeout(GetChristmasEnglishVoice, 300);
+            }
+            document.addEventListener("pointerdown", WarmChristmasSpeech, { once: true, passive: true });
+            document.addEventListener("touchstart", WarmChristmasSpeech, { once: true, passive: true });
+            document.addEventListener("click", WarmChristmasSpeech, { once: true, passive: true });
             function PlayChristmasNameIntro(onComplete) {
                 var done = false;
                 function finish() {
@@ -633,18 +716,13 @@
                 }
                 try {
                     window.speechSynthesis.cancel();
-                    var utterance = new SpeechSynthesisUtterance(name + ", Merry Christmas!");
-                    utterance.lang = "en-US";
-                    utterance.rate = 0.88;
-                    utterance.pitch = 0.75;
-                    utterance.volume = 1;
-                    utterance.onend = finish;
-                    utterance.onerror = function (err) {
-                        console.warn("Christmas name TTS failed", err);
-                        finish();
-                    };
-                    window.speechSynthesis.speak(utterance);
-                    setTimeout(finish, 3500);
+                    GetChristmasEnglishVoice();
+                    setTimeout(function () {
+                        SpeakChristmasLine("Heyyyy!", { rate: 0.72, pitch: 0.78, timeout: 2500 }, function () {
+                            SpeakChristmasLine(name + ", Merry Christmas!", { rate: 0.88, pitch: 0.75, timeout: 4000 }, finish);
+                        });
+                    }, 500);
+                    setTimeout(finish, 7000);
                 }
                 catch (err) {
                     console.warn("Christmas name TTS unavailable", err);
@@ -695,7 +773,8 @@
                     tapTarget.onclick = null;
                     tapTarget.ontouchend = null;
                 }
-            };            window.PlayChristmasNameIntroForUnity = function(gameObjectName) {
+            };
+            window.PlayChristmasNameIntroForUnity = function(gameObjectName) {
                 PlayChristmasNameIntro(function () {
                     if (window.unityInstance && gameObjectName) {
                         window.unityInstance.SendMessage(gameObjectName, "OnChristmasNameIntroFinished", "");
