@@ -902,11 +902,13 @@
                         }
                         SpeakChristmasLine("Hey!", { rate: 0.48, pitch: 0.78, timeout: 2500 }, function () {
                             SpeakChristmasLine(spokenName + ".", { rate: 0.72, pitch: 0.75, timeout: 2500 }, function () {
-                                SpeakChristmasLine("Merry Christmas!", { rate: 0.88, pitch: 0.75, timeout: 3000 }, finish);
+                                SpeakChristmasLine("Merry Christmas!", { rate: 0.88, pitch: 0.75, timeout: 3000 }, function () {
+                                    SpeakChristmasLine("Open Santa's postcard!", { rate: 0.88, pitch: 0.75, timeout: 3200 }, finish);
+                                });
                             });
                         });
                     }, 500);
-                    setTimeout(finish, 7000);
+                    setTimeout(finish, 10000);
                 }
                 catch (err) {
                     console.warn("Christmas name TTS unavailable", err);
@@ -1086,7 +1088,6 @@
                     window.unityInstance = unityInstance;
                     ScheduleViewportRefresh();
                     setTimeout(() => window.dispatchEvent(new Event("resize")), 50);
-                    ScheduleUnityCanvasCenterTap();
                     loadingBar.style.display = "none";
                 }).catch((err) => {
                     console.error("Unity failed to start - ", err);
@@ -1172,6 +1173,7 @@
                     try {
                         await arCamera.startWebcam(video);
                         console.log("Webcam started successfully");
+                        ScheduleUnityCanvasCenterTap();
                         window.unityInstance.SendMessage('ARCamera', 'OnStartWebcamSuccess');
                     }
                     catch(err){
@@ -1279,9 +1281,7 @@
                 }));
             }
             function ScheduleUnityCanvasCenterTap() {
-                [120, 360, 800, 1400].forEach(function(delay) {
-                    setTimeout(TapUnityCanvasCenter, delay);
-                });
+                setTimeout(TapUnityCanvasCenter, 160);
             }
             async function FlipCam(){
                 arCamera.stopWebcam();
