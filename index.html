@@ -296,7 +296,7 @@
             This augmented reality experience requires access to your device's camera
             
         </p>
-        <button id="startARButton" onclick="StartAR()" style="display:none">Tap to start</button>
+        <button id="startARButton" onclick="BeginChristmasExperience()" style="display:none">Tap to start</button>
     </div>
     <div id="screenshotDiv" style="display: none;" class="ctaDiv">
         <div style="position:relative; background-color:white; padding:10px; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3), 0 6px 20px 0 rgba(0, 0, 0, 0.25);">
@@ -561,19 +561,22 @@
                     }
                     return;
                 }
-                CloseParentNamePanel();
-                if (!trackerInitialized) {
-                    initialize();
+                if (input) {
+                    input.blur();
                 }
-                else if (unityStarted) {
+                CloseParentNamePanel();
+                ScheduleViewportRefresh();
+                if (unityStarted) {
                     var startDiv = document.getElementById("startARDiv");
                     if (startDiv) {
                         startDiv.style.display = "none";
                     }
+                    return;
                 }
-                else {
+                setTimeout(function () {
+                    ScheduleViewportRefresh();
                     ShowStartARPrompt("Tap to start");
-                }
+                }, 220);
             }
             function EnsureChristmasChildNameBeforeStart() {
                 if (HasChristmasChildName()) {
@@ -962,6 +965,47 @@
                     tapTarget.ontouchend = null;
                 }
             };
+            window.ShowChristmasCompletionRestart = function(gameObjectName) {
+                var restartTarget = document.getElementById("christmasCompletionRestartTarget");
+                if (!restartTarget) {
+                    restartTarget = document.createElement("button");
+                    restartTarget.id = "christmasCompletionRestartTarget";
+                    restartTarget.type = "button";
+                    restartTarget.setAttribute("aria-label", "Restart Christmas experience");
+                    restartTarget.style.position = "fixed";
+                    restartTarget.style.left = "0";
+                    restartTarget.style.top = "0";
+                    restartTarget.style.width = "100vw";
+                    restartTarget.style.height = "100vh";
+                    restartTarget.style.zIndex = "2147483646";
+                    restartTarget.style.border = "0";
+                    restartTarget.style.padding = "0";
+                    restartTarget.style.margin = "0";
+                    restartTarget.style.background = "rgba(0,0,0,0)";
+                    restartTarget.style.touchAction = "manipulation";
+                    document.body.appendChild(restartTarget);
+                }
+                restartTarget.style.display = "block";
+                restartTarget.onclick = function(event) {
+                    if (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    window.HideChristmasCompletionRestart();
+                    if (window.unityInstance && gameObjectName) {
+                        window.unityInstance.SendMessage(gameObjectName, "RestartChristmasExperience", "");
+                    }
+                };
+                restartTarget.ontouchend = restartTarget.onclick;
+            };
+            window.HideChristmasCompletionRestart = function() {
+                var restartTarget = document.getElementById("christmasCompletionRestartTarget");
+                if (restartTarget) {
+                    restartTarget.style.display = "none";
+                    restartTarget.onclick = null;
+                    restartTarget.ontouchend = null;
+                }
+            };
             window.PlayChristmasNameIntroForUnity = function(gameObjectName) {
                 PlayChristmasNameIntro(function () {
                     if (window.unityInstance && gameObjectName) {
@@ -1034,6 +1078,11 @@
                 }
             }
             window.StopTrackedHtmlVideo = function() {
+                if (window.HideChristmasCompletionRestart) {
+                    window.HideChristmasCompletionRestart();
+                }
+                christmasNameIntroState = "idle";
+                christmasNameIntroCallbacks.length = 0;
                 if (window.speechSynthesis) {
                     window.speechSynthesis.cancel();
                 }
@@ -1057,6 +1106,17 @@
                     overlay.style.display = "none";
                 }
             };
+            async function BeginChristmasExperience() {
+                if (!EnsureChristmasChildNameBeforeStart()) {
+                    return;
+                }
+                ScheduleViewportRefresh();
+                if (!trackerInitialized) {
+                    await initialize();
+                    return;
+                }
+                await StartAR();
+            }
             async function StartAR() {
                 if (unityStarted) {
                     return;
