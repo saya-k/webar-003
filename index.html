@@ -1061,6 +1061,7 @@
                     window.unityInstance = unityInstance;
                     ScheduleViewportRefresh();
                     setTimeout(() => window.dispatchEvent(new Event("resize")), 50);
+                    ScheduleUnityCanvasCenterTap();
                     loadingBar.style.display = "none";
                 }).catch((err) => {
                     console.error("Unity failed to start - ", err);
@@ -1207,6 +1208,59 @@
                 window.WEBCAM_SETTINGS.video['deviceId'] = deviceId;
                 //console.log(window.WEBCAM_SETTINGS);
                 iTracker.WEBCAM_NAME = select.options[select.selectedIndex].innerHTML;
+            }
+            function TapUnityCanvasCenter() {
+                var canvas = document.getElementById("unity-canvas");
+                if (!canvas) {
+                    return;
+                }
+
+                if (window.__setAppViewportSize) {
+                    window.__setAppViewportSize();
+                }
+                window.dispatchEvent(new Event("resize"));
+
+                var rect = canvas.getBoundingClientRect();
+                var x = Math.round(rect.left + rect.width * 0.5);
+                var y = Math.round(rect.top + rect.height * 0.5);
+                var target = document.elementFromPoint(x, y) || canvas;
+
+                try {
+                    target.dispatchEvent(new PointerEvent("pointerdown", {
+                        bubbles: true,
+                        cancelable: true,
+                        pointerId: 1,
+                        pointerType: "touch",
+                        isPrimary: true,
+                        clientX: x,
+                        clientY: y
+                    }));
+                    target.dispatchEvent(new PointerEvent("pointerup", {
+                        bubbles: true,
+                        cancelable: true,
+                        pointerId: 1,
+                        pointerType: "touch",
+                        isPrimary: true,
+                        clientX: x,
+                        clientY: y
+                    }));
+                }
+                catch (err) {
+                    target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+                    target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+                }
+
+                target.dispatchEvent(new MouseEvent("click", {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: x,
+                    clientY: y
+                }));
+            }
+            function ScheduleUnityCanvasCenterTap() {
+                [120, 360, 800, 1400].forEach(function(delay) {
+                    setTimeout(TapUnityCanvasCenter, delay);
+                });
             }
             async function FlipCam(){
                 arCamera.stopWebcam();
