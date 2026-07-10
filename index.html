@@ -670,7 +670,7 @@
                     video.setAttribute("playsinline", "");
                     video.setAttribute("webkit-playsinline", "");
                     video.preload = "auto";
-                    video.loop = true;
+                    video.loop = false;
                     video.src = url;
                     video.style.position = "fixed";
                     video.style.left = "-2px";
@@ -736,7 +736,7 @@
                 video.setAttribute("webkit-playsinline", "");
                 video.playsInline = true;
                 video.controls = false;
-                video.loop = true;
+                video.loop = false;
                 video.muted = false;
                 video.volume = 1;
                 video.preload = "auto";
@@ -766,7 +766,7 @@
                     PlayTrackedHtmlVideo(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight);
                 };
                 video.onended = function () {
-                    StopTrackedHtmlVideo();
+                    FinishTrackedHtmlVideo();
                 };
                 overlay.style.display = "flex";
                 return { overlay, message, messageText, button, video };
@@ -1017,6 +1017,20 @@
                 state.button.style.display = "none";
                 beginVideoPlayback();
             };
+            function FinishTrackedHtmlVideo() {
+                var overlay = document.getElementById("trackedHtmlVideoOverlay");
+                var video = window.__trackedHtmlVideo;
+                if (video) {
+                    video.pause();
+                    video.style.display = "none";
+                }
+                if (overlay) {
+                    overlay.style.display = "none";
+                }
+                if (window.unityInstance) {
+                    window.unityInstance.SendMessage("ImageScanUIBridge", "OnTrackedTargetVideoEnded", "");
+                }
+            }
             window.StopTrackedHtmlVideo = function() {
                 if (window.speechSynthesis) {
                     window.speechSynthesis.cancel();
