@@ -854,16 +854,39 @@
             document.addEventListener("pointerdown", WarmChristmasSpeech, { once: true, passive: true });
             document.addEventListener("touchstart", WarmChristmasSpeech, { once: true, passive: true });
             document.addEventListener("click", WarmChristmasSpeech, { once: true, passive: true });
+            var christmasNameIntroState = "idle";
+            var christmasNameIntroCallbacks = [];
+            function CompleteChristmasNameIntroCallbacks() {
+                var callbacks = christmasNameIntroCallbacks.slice();
+                christmasNameIntroCallbacks.length = 0;
+                callbacks.forEach(function(callback) {
+                    if (typeof callback === "function") {
+                        callback();
+                    }
+                });
+            }
             function PlayChristmasNameIntro(onComplete) {
+                if (christmasNameIntroState === "done") {
+                    if (typeof onComplete === "function") {
+                        setTimeout(onComplete, 0);
+                    }
+                    return;
+                }
+                if (typeof onComplete === "function") {
+                    christmasNameIntroCallbacks.push(onComplete);
+                }
+                if (christmasNameIntroState === "playing") {
+                    return;
+                }
+                christmasNameIntroState = "playing";
                 var done = false;
                 function finish() {
                     if (done) {
                         return;
                     }
                     done = true;
-                    if (typeof onComplete === "function") {
-                        onComplete();
-                    }
+                    christmasNameIntroState = "done";
+                    CompleteChristmasNameIntroCallbacks();
                 }
                 var name = window.GetChristmasChildName ? window.GetChristmasChildName() : "";
                 if (!name || !window.speechSynthesis || !window.SpeechSynthesisUtterance) {
@@ -872,9 +895,11 @@
                 }
                 var spokenName = GetChristmasSpeakableName(name);
                 try {
-                    window.speechSynthesis.cancel();
                     GetChristmasEnglishVoice();
                     setTimeout(function () {
+                        if (done) {
+                            return;
+                        }
                         SpeakChristmasLine("Hey!", { rate: 0.48, pitch: 0.78, timeout: 2500 }, function () {
                             SpeakChristmasLine(spokenName + ".", { rate: 0.72, pitch: 0.75, timeout: 2500 }, function () {
                                 SpeakChristmasLine("Merry Christmas!", { rate: 0.88, pitch: 0.75, timeout: 3000 }, finish);
@@ -1214,17 +1239,14 @@
                 if (!canvas) {
                     return;
                 }
-
                 if (window.__setAppViewportSize) {
                     window.__setAppViewportSize();
                 }
                 window.dispatchEvent(new Event("resize"));
-
                 var rect = canvas.getBoundingClientRect();
                 var x = Math.round(rect.left + rect.width * 0.5);
                 var y = Math.round(rect.top + rect.height * 0.5);
                 var target = document.elementFromPoint(x, y) || canvas;
-
                 try {
                     target.dispatchEvent(new PointerEvent("pointerdown", {
                         bubbles: true,
@@ -1249,7 +1271,6 @@
                     target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, clientX: x, clientY: y }));
                     target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, clientX: x, clientY: y }));
                 }
-
                 target.dispatchEvent(new MouseEvent("click", {
                     bubbles: true,
                     cancelable: true,
