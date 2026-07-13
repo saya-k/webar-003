@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { FBXLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/FBXLoader.js';
 
 const targets = [
   'Christmas snowflake',
@@ -45,6 +46,7 @@ let renderer;
 let scene;
 let camera;
 let santa;
+let santaMixer;
 let clock;
 
 init();
@@ -349,8 +351,65 @@ function setupThree() {
   santa.position.set(0, -1.02, 0);
   santa.scale.setScalar(0.76);
   scene.add(santa);
+  loadRealSanta();
 
   clock = new THREE.Clock();
+}
+
+async function loadRealSanta() {
+  const loader = new FBXLoader();
+  loader.load(
+    './assets/models/Santa.fbx',
+    (fbx) => {
+      const realSanta = normalizeLoadedSanta(fbx);
+      realSanta.visible = santa.visible;
+      realSanta.position.copy(santa.position);
+      realSanta.rotation.copy(santa.rotation);
+      scene.remove(santa);
+      santa = realSanta;
+      scene.add(santa);
+
+      if (fbx.animations && fbx.animations.length > 0) {
+        santaMixer = new THREE.AnimationMixer(fbx);
+        const action = santaMixer.clipAction(fbx.animations[0]);
+        action.play();
+      }
+    },
+    undefined,
+    (error) => {
+      console.warn('Failed to load Santa.fbx, using procedural placeholder.', error);
+    },
+  );
+}
+
+function normalizeLoadedSanta(fbx) {
+  const root = new THREE.Group();
+  fbx.traverse((child) => {
+    if (child.isMesh) {
+      child.frustumCulled = false;
+      if (child.material) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+          material.side = THREE.DoubleSide;
+          material.needsUpdate = true;
+        });
+      }
+    }
+  });
+
+  const box = new THREE.Box3().setFromObject(fbx);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+  const height = Math.max(size.y, 0.001);
+  const targetHeight = 3.25;
+  const scale = targetHeight / height;
+
+  fbx.scale.setScalar(scale);
+  fbx.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+  root.add(fbx);
+  return root;
 }
 
 function createSanta() {
@@ -435,6 +494,7 @@ function tick() {
   if (state.experienceStarted && !state.postcardReady && state.speechDeadlineAt && performance.now() >= state.speechDeadlineAt) {
     finishSantaSpeechStep();
   }
+  if (santaMixer) santaMixer.update(delta);
   if (santa?.visible) animateSanta(delta);
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
