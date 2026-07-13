@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FBXLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js';
 
 const targets = [
   'Christmas snowflake',
@@ -357,11 +357,11 @@ function setupThree() {
 }
 
 async function loadRealSanta() {
-  const loader = new FBXLoader();
+  const loader = new GLTFLoader();
   loader.load(
-    './assets/models/Santa.fbx',
-    (fbx) => {
-      const realSanta = normalizeLoadedSanta(fbx);
+    './assets/models/Santa.glb',
+    (gltf) => {
+      const realSanta = normalizeLoadedSanta(gltf.scene);
       realSanta.visible = santa.visible;
       realSanta.position.copy(santa.position);
       realSanta.rotation.copy(santa.rotation);
@@ -369,22 +369,22 @@ async function loadRealSanta() {
       santa = realSanta;
       scene.add(santa);
 
-      if (fbx.animations && fbx.animations.length > 0) {
-        santaMixer = new THREE.AnimationMixer(fbx);
-        const action = santaMixer.clipAction(fbx.animations[0]);
+      if (gltf.animations && gltf.animations.length > 0) {
+        santaMixer = new THREE.AnimationMixer(gltf.scene);
+        const action = santaMixer.clipAction(gltf.animations[0]);
         action.play();
       }
     },
     undefined,
     (error) => {
-      console.warn('Failed to load Santa.fbx, using procedural placeholder.', error);
+      console.warn('Failed to load Santa.glb, using procedural placeholder.', error);
     },
   );
 }
 
-function normalizeLoadedSanta(fbx) {
+function normalizeLoadedSanta(model) {
   const root = new THREE.Group();
-  fbx.traverse((child) => {
+  model.traverse((child) => {
     if (child.isMesh) {
       child.frustumCulled = false;
       if (child.material) {
@@ -397,7 +397,7 @@ function normalizeLoadedSanta(fbx) {
     }
   });
 
-  const box = new THREE.Box3().setFromObject(fbx);
+  const box = new THREE.Box3().setFromObject(model);
   const size = new THREE.Vector3();
   const center = new THREE.Vector3();
   box.getSize(size);
@@ -406,9 +406,9 @@ function normalizeLoadedSanta(fbx) {
   const targetHeight = 3.25;
   const scale = targetHeight / height;
 
-  fbx.scale.setScalar(scale);
-  fbx.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
-  root.add(fbx);
+  model.scale.setScalar(scale);
+  model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+  root.add(model);
   return root;
 }
 
@@ -510,6 +510,10 @@ function animateSanta(delta) {
 
   santa.rotation.y = Math.sin(t * 1.6) * 0.16;
   santa.position.y = -1.02 + Math.sin(t * 5.2) * 0.035;
+
+  if (!leftArm || !rightArm || !leftLeg || !rightLeg) {
+    return;
+  }
 
   if (state.santaMode === 'wave') {
     rightArm.rotation.z = 1.95 + Math.sin(t * 7) * 0.28;
