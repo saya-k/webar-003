@@ -37,6 +37,8 @@ const state = {
   santaMode: 'hidden',
   santaTime: 0,
   ttsDone: false,
+  speechDeadlineAt: 0,
+  speechWatchdog: null,
 };
 
 let renderer;
@@ -160,16 +162,33 @@ function onTargetFound(targetId) {
   els.postcardButton.classList.add('hidden');
   santa.visible = true;
 
-  const forcedNextStepTimer = setTimeout(() => {
-    finishSantaSpeechStep();
-  }, 7200);
+  startSpeechWatchdog(7200);
 
   speakIntro().then(() => {
-    clearTimeout(forcedNextStepTimer);
     finishSantaSpeechStep();
   });
 }
 
+function startSpeechWatchdog(timeoutMs) {
+  stopSpeechWatchdog();
+  state.speechDeadlineAt = performance.now() + timeoutMs;
+  state.speechWatchdog = window.setInterval(() => {
+    if (!state.experienceStarted || state.postcardReady) {
+      stopSpeechWatchdog();
+      return;
+    }
+    if (performance.now() >= state.speechDeadlineAt) {
+      finishSantaSpeechStep();
+    }
+  }, 250);
+}
+
+function stopSpeechWatchdog() {
+  if (state.speechWatchdog) {
+    clearInterval(state.speechWatchdog);
+    state.speechWatchdog = null;
+  }
+}
 function forceHideScanHud() {
   els.scanHud.classList.add('hidden');
   els.scanHud.style.display = 'none';
@@ -182,6 +201,8 @@ function showScanHud() {
 
 function finishSantaSpeechStep() {
   if (!state.experienceStarted || state.postcardReady) return;
+  stopSpeechWatchdog();
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
   state.ttsDone = true;
   state.santaMode = 'wave';
   forceHideScanHud();
@@ -299,6 +320,8 @@ function restartExperience() {
   state.experienceStarted = false;
   state.postcardReady = false;
   state.santaMode = 'hidden';
+  state.speechDeadlineAt = 0;
+  stopSpeechWatchdog();
 }
 
 function setupThree() {
@@ -409,6 +432,9 @@ function mesh(geometry, material, position, rotation = [0, 0, 0], scale = [1, 1,
 
 function tick() {
   const delta = clock.getDelta();
+  if (state.experienceStarted && !state.postcardReady && state.speechDeadlineAt && performance.now() >= state.speechDeadlineAt) {
+    finishSantaSpeechStep();
+  }
   if (santa?.visible) animateSanta(delta);
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
@@ -450,6 +476,7 @@ function resize() {
     camera.updateProjectionMatrix();
   }
 }
+
 
 
 
