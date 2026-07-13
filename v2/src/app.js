@@ -114,7 +114,7 @@ async function startCameraExperience() {
   unlockSpeech();
   await startCamera();
   els.startGate.classList.add('hidden');
-  els.scanHud.classList.remove('hidden');
+  showScanHud();
   state.started = true;
   els.startButton.disabled = false;
   els.startButton.textContent = 'Tap to start';
@@ -156,14 +156,36 @@ function onTargetFound(targetId) {
   state.ttsDone = false;
   state.santaMode = 'dance';
   state.santaTime = 0;
-  els.scanHud.classList.add('hidden');
+  forceHideScanHud();
   els.postcardButton.classList.add('hidden');
   santa.visible = true;
+
+  const forcedNextStepTimer = setTimeout(() => {
+    finishSantaSpeechStep();
+  }, 7200);
+
   speakIntro().then(() => {
-    state.ttsDone = true;
-    state.santaMode = 'wave';
-    showPostcard();
+    clearTimeout(forcedNextStepTimer);
+    finishSantaSpeechStep();
   });
+}
+
+function forceHideScanHud() {
+  els.scanHud.classList.add('hidden');
+  els.scanHud.style.display = 'none';
+}
+
+function showScanHud() {
+  els.scanHud.style.display = '';
+  els.scanHud.classList.remove('hidden');
+}
+
+function finishSantaSpeechStep() {
+  if (!state.experienceStarted || state.postcardReady) return;
+  state.ttsDone = true;
+  state.santaMode = 'wave';
+  forceHideScanHud();
+  showPostcard();
 }
 
 function unlockSpeech() {
@@ -270,7 +292,7 @@ function restartExperience() {
   els.videoOverlay.classList.add('hidden');
   els.postcardButton.classList.add('hidden');
   els.postcardButton.classList.remove('opening');
-  els.scanHud.classList.remove('hidden');
+  showScanHud();
   els.christmasVideo.pause();
   els.christmasVideo.currentTime = 0;
   santa.visible = false;
@@ -290,8 +312,8 @@ function setupThree() {
   renderer.setClearColor(0x000000, 0);
 
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-  camera.position.set(0, 0.4, 5.8);
+  camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+  camera.position.set(0, 0.35, 7.8);
 
   const hemi = new THREE.HemisphereLight(0xffffff, 0x7d8ba0, 2.4);
   scene.add(hemi);
@@ -301,8 +323,8 @@ function setupThree() {
 
   santa = createSanta();
   santa.visible = false;
-  santa.position.set(0, -0.72, 0);
-  santa.scale.setScalar(1.18);
+  santa.position.set(0, -1.02, 0);
+  santa.scale.setScalar(0.76);
   scene.add(santa);
 
   clock = new THREE.Clock();
@@ -401,7 +423,7 @@ function animateSanta(delta) {
   const rightLeg = santa.getObjectByName('rightLeg');
 
   santa.rotation.y = Math.sin(t * 1.6) * 0.16;
-  santa.position.y = -0.72 + Math.sin(t * 5.2) * 0.04;
+  santa.position.y = -1.02 + Math.sin(t * 5.2) * 0.035;
 
   if (state.santaMode === 'wave') {
     rightArm.rotation.z = 1.95 + Math.sin(t * 7) * 0.28;
@@ -428,4 +450,7 @@ function resize() {
     camera.updateProjectionMatrix();
   }
 }
+
+
+
 
