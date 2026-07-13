@@ -179,8 +179,21 @@ function unlockSpeech() {
 
 function speakIntro() {
   return new Promise((resolve) => {
-    if (!('speechSynthesis' in window)) {
-      setTimeout(resolve, 3800);
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      resolve();
+    };
+
+    const fallbackTimer = setTimeout(finish, 7200);
+    const done = () => {
+      clearTimeout(fallbackTimer);
+      finish();
+    };
+
+    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+      setTimeout(done, 3800);
       return;
     }
 
@@ -191,9 +204,19 @@ function speakIntro() {
     utterance.rate = 0.82;
     utterance.pitch = 0.84;
     utterance.volume = 1;
-    utterance.onend = resolve;
-    utterance.onerror = resolve;
-    setTimeout(() => speechSynthesis.speak(utterance), 500);
+    const voices = speechSynthesis.getVoices ? speechSynthesis.getVoices() : [];
+    const voice = voices.find((item) => item.lang && item.lang.toLowerCase().startsWith('en')) || voices[0];
+    if (voice) utterance.voice = voice;
+    utterance.onend = done;
+    utterance.onerror = done;
+    setTimeout(() => {
+      try {
+        speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.warn('TTS failed, continuing flow.', error);
+        done();
+      }
+    }, 500);
   });
 }
 
@@ -405,3 +428,4 @@ function resize() {
     camera.updateProjectionMatrix();
   }
 }
+
