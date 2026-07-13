@@ -42,6 +42,8 @@ const state = {
   speechWatchdog: null,
 };
 
+const santaAnchorY = -0.18;
+
 let renderer;
 let scene;
 let camera;
@@ -348,7 +350,7 @@ function setupThree() {
 
   santa = createSanta();
   santa.visible = false;
-  santa.position.set(0, -1.02, 0);
+  santa.position.set(0, santaAnchorY, 0);
   santa.scale.setScalar(0.76);
   scene.add(santa);
   loadRealSanta();
@@ -407,7 +409,7 @@ function normalizeLoadedSanta(model) {
   const scale = targetHeight / height;
 
   model.scale.setScalar(scale);
-  model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+  model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
   root.add(model);
   return root;
 }
@@ -509,7 +511,7 @@ function animateSanta(delta) {
   const rightLeg = santa.getObjectByName('rightLeg');
 
   santa.rotation.y = Math.sin(t * 1.6) * 0.16;
-  santa.position.y = -1.02 + Math.sin(t * 5.2) * 0.035;
+  santa.position.y = santaAnchorY + Math.sin(t * 5.2) * 0.035;
 
   if (!leftArm || !rightArm || !leftLeg || !rightLeg) {
     return;
