@@ -565,19 +565,17 @@
         });
       }
     });
-    model.rotation.x = -Math.PI / 2;
-    model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(model);
     const size = new THREE.Vector3();
     const center = new THREE.Vector3();
     box.getSize(size);
     box.getCenter(center);
     const height = Math.max(size.y, 0.001);
-    const scale = 2.65 / height;
+    const scale = 2.35 / height;
     model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale - 0.34, -center.z * scale);
+    model.position.set(-center.x * scale, -center.y * scale - 0.28, -center.z * scale);
     root.add(model);
-    root.position.set(0, 0.02, 0);
+    root.position.set(0, 0.04, 0);
     return root;
   }
 
@@ -793,6 +791,7 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
 
 
