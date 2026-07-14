@@ -2,7 +2,7 @@
   const targetNames = ['1', '2', '3', '4', '5'];
   const NAME_KEY = 'christmasChildName';
   const STATIC_SANTA_DIAGNOSTIC = true;
-  const SANTA_BASE_Y = -0.48;
+  const SANTA_BASE_Y = -1;
 
   let scanStatus;
   let loadingOverlay;
