@@ -573,9 +573,9 @@
     const height = Math.max(size.y, 0.001);
     const scale = 1.175 / height;
     model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale - 0.52, -center.z * scale);
+    model.position.set(-center.x * scale, -center.y * scale - 0.82, -center.z * scale);
     root.add(model);
-    root.position.set(0, -0.26, 0);
+    root.position.set(0, -0.48, 0);
     return root;
   }
 
@@ -791,13 +791,3 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
-
-
-
-
-
-
-
-
-
-
