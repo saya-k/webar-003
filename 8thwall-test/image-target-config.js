@@ -2,6 +2,7 @@
   const targetNames = ['1', '2', '3', '4', '5'];
   let scanStatus;
   let loadingOverlay;
+  let appStarted = false;
 
   function ensureUi() {
     if (!loadingOverlay) {
@@ -90,6 +91,15 @@
     scanStatus.textContent = text;
   }
 
+  function startApp() {
+    if (appStarted) return;
+    appStarted = true;
+    const script = document.createElement('script');
+    script.src = './bundle.js';
+    script.onerror = () => setScanStatus('Failed to load app bundle');
+    document.body.appendChild(script);
+  }
+
   function errorText(error) {
     if (!error) return 'Unknown error';
     if (error.stack) return error.stack.split('\n').slice(0, 2).join(' ');
@@ -157,6 +167,8 @@
           },
         ],
       });
+
+      startApp();
     } catch (error) {
       console.error('[Christmas AR] image target configuration failed:', error);
       setScanStatus(`Image target setup failed: ${errorText(error)}`);
