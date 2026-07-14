@@ -22,6 +22,9 @@
   let camera;
   let santa;
   let mixer;
+  let santaActions = {};
+  let currentSantaAction = null;
+  let desiredSantaAction = 'Santa_DanceIdle';
   let clock;
 
   const state = {
@@ -524,11 +527,17 @@
       scene.remove(santa);
       santa = modelRoot;
       scene.add(santa);
+      santaActions = {};
+      currentSantaAction = null;
       if (gltf.animations && gltf.animations.length > 0) {
         mixer = new THREE.AnimationMixer(gltf.scene);
-        const action = mixer.clipAction(gltf.animations[0]);
-        action.setLoop(THREE.LoopRepeat, Infinity);
-        action.play();
+        gltf.animations.forEach((clip) => {
+          const action = mixer.clipAction(clip);
+          action.setLoop(THREE.LoopRepeat, Infinity);
+          action.clampWhenFinished = false;
+          santaActions[clip.name] = action;
+        });
+        playSantaAction(desiredSantaAction, 0);
       }
     }, undefined, (error) => {
       console.warn('[Christmas AR] Failed to load Santa.glb', error);
@@ -578,6 +587,22 @@
     camera.updateProjectionMatrix();
   }
 
+  function playSantaAction(name, fadeSeconds = 0.3) {
+    desiredSantaAction = name;
+    if (!mixer || !santaActions[name]) return;
+    const next = santaActions[name];
+    if (currentSantaAction === next) return;
+    next.enabled = true;
+    next.reset();
+    next.play();
+    if (currentSantaAction && fadeSeconds > 0) {
+      currentSantaAction.crossFadeTo(next, fadeSeconds, false);
+    } else if (currentSantaAction) {
+      currentSantaAction.stop();
+    }
+    currentSantaAction = next;
+  }
+
   function renderSanta() {
     if (renderer && scene && camera) {
       const delta = clock ? clock.getDelta() : 0.016;
@@ -590,6 +615,7 @@
 
   function animateSanta(delta) {
     if (!santa || !santa.visible) return;
+    if (santaActions && Object.keys(santaActions).length > 0) return;
     state.santaTime += delta;
     const t = state.santaTime;
     santa.rotation.y = Math.sin(t * 1.5) * 0.12;
@@ -614,6 +640,7 @@
     state.videoPlaying = false;
     state.santaMode = 'dance';
     state.santaTime = 0;
+    playSantaAction('Santa_DanceIdle', 0.2);
     hideScanStatus();
     postcardButton.classList.add('hidden');
     postcardButton.classList.remove('opening');
@@ -650,6 +677,7 @@
     try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch {}
     state.postcardReady = true;
     state.santaMode = 'wave';
+    playSantaAction('Santa_WaveHello', 0.45);
     postcardButton.classList.remove('hidden');
   }
 
@@ -761,6 +789,8 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
+
 
 
 
