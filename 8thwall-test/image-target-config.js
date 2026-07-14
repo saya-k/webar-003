@@ -684,19 +684,16 @@
       const a = track.frames[prevIndex] || track.frames[0];
       const b = track.frames[nextIndex] || track.frames[0];
       if (!a || !b) return;
-      track.node.position.set(
-        lerp(a.p.x, b.p.x, alpha),
-        lerp(a.p.y, b.p.y, alpha),
-        lerp(a.p.z, b.p.z, alpha),
-      );
+      if (track.name === 'Hips') {
+        track.node.position.set(
+          lerp(a.p.x, b.p.x, alpha),
+          lerp(a.p.y, b.p.y, alpha),
+          lerp(a.p.z, b.p.z, alpha),
+        );
+      }
       unityAnimationTemp.qa.set(a.r.x, a.r.y, a.r.z, a.r.w);
       unityAnimationTemp.qb.set(b.r.x, b.r.y, b.r.z, b.r.w);
       track.node.quaternion.slerpQuaternions(unityAnimationTemp.qa, unityAnimationTemp.qb, alpha);
-      track.node.scale.set(
-        lerp(a.s.x, b.s.x, alpha),
-        lerp(a.s.y, b.s.y, alpha),
-        lerp(a.s.z, b.s.z, alpha),
-      );
     });
   }
 
