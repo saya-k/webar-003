@@ -1,7 +1,7 @@
 (function () {
   const targetNames = ['1', '2', '3', '4', '5'];
   const NAME_KEY = 'christmasChildName';
-  const STATIC_SANTA_DIAGNOSTIC = true;
+  const STATIC_SANTA_DIAGNOSTIC = false;
   const SANTA_BASE_Y = -1;
 
   let scanStatus;
@@ -25,6 +25,10 @@
   let santa;
   let mixer;
   let santaActions = {};
+  let unitySantaClips = {};
+  let unityAnimationTemp = null;
+  let activeUnityClip = null;
+  let activeUnityTime = 0;
   let currentSantaAction = null;
   let desiredSantaAction = 'Santa_DanceIdle';
   let clock;
@@ -531,7 +535,7 @@
       scene.add(santa);
       santaActions = {};
       currentSantaAction = null;
-      if (!STATIC_SANTA_DIAGNOSTIC && gltf.animations && gltf.animations.length > 0) {
+      if (gltf.animations && gltf.animations.length > 0) {
         mixer = new THREE.AnimationMixer(gltf.scene);
         gltf.animations.forEach((clip) => {
           const action = mixer.clipAction(clip);
@@ -539,8 +543,13 @@
           action.clampWhenFinished = false;
           santaActions[clip.name] = action;
         });
-        playSantaAction(desiredSantaAction, 0);
       }
+      loadSantaAnimationSamples().then((samples) => {
+        setupUnitySantaAnimations(samples, santa, THREE);
+        playSantaAction(desiredSantaAction, 0);
+      }).catch((error) => {
+        console.warn('[Christmas AR] Failed to load Unity Santa animations', error);
+      });
     }, undefined, (error) => {
       console.warn('[Christmas AR] Failed to load Santa.glb', error);
     });
@@ -589,9 +598,44 @@
     camera.updateProjectionMatrix();
   }
 
+  async function loadSantaAnimationSamples() {
+    const response = await fetch('./assets/santa-animation-samples.json?v=unity-anim-1', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Failed to load Santa animation samples: ${response.status}`);
+    return response.json();
+  }
+
+  function setupUnitySantaAnimations(samples, santaRoot, THREE) {
+    const nodesByName = {};
+    santaRoot.traverse((node) => {
+      if (node.name) nodesByName[node.name] = node;
+    });
+    unityAnimationTemp = {
+      qa: new THREE.Quaternion(),
+      qb: new THREE.Quaternion(),
+    };
+    unitySantaClips = {};
+    (samples.clips || []).forEach((clip) => {
+      const tracks = (clip.bones || [])
+        .map((bone) => ({ name: bone.name, node: nodesByName[bone.name], frames: bone.frames || [] }))
+        .filter((track) => track.node && track.frames.length > 0);
+      unitySantaClips[clip.name] = {
+        name: clip.name,
+        length: Math.max(Number(clip.length) || 0, 0.001),
+        times: clip.times || [],
+        tracks,
+      };
+    });
+    console.log('[Christmas AR] Unity Santa clips loaded:', Object.keys(unitySantaClips));
+  }
   function playSantaAction(name, fadeSeconds = 0.3) {
     desiredSantaAction = name;
-    if (STATIC_SANTA_DIAGNOSTIC) return;
+    if (unitySantaClips[name]) {
+      activeUnityClip = unitySantaClips[name];
+      activeUnityTime = 0;
+      currentSantaAction = name;
+      applyUnitySantaAnimation(activeUnityClip, 0);
+      return;
+    }
     if (!mixer || !santaActions[name]) return;
     const next = santaActions[name];
     if (currentSantaAction === next) return;
@@ -610,14 +654,57 @@
     if (renderer && scene && camera) {
       const delta = clock ? clock.getDelta() : 0.016;
       if (mixer) mixer.update(delta);
+      updateUnitySantaAnimation(delta);
       animateSanta(delta);
       renderer.render(scene, camera);
     }
     requestAnimationFrame(renderSanta);
   }
 
+  function updateUnitySantaAnimation(delta) {
+    if (!activeUnityClip || !santa || !santa.visible) return;
+    activeUnityTime = (activeUnityTime + delta) % activeUnityClip.length;
+    applyUnitySantaAnimation(activeUnityClip, activeUnityTime);
+  }
+
+  function applyUnitySantaAnimation(clip, time) {
+    const times = clip.times;
+    if (!times || times.length === 0 || !unityAnimationTemp) return;
+    let nextIndex = times.findIndex((sampleTime) => sampleTime >= time);
+    if (nextIndex < 0) nextIndex = 0;
+    const prevIndex = nextIndex === 0 ? Math.max(times.length - 1, 0) : nextIndex - 1;
+    const prevTime = times[prevIndex] || 0;
+    const nextTime = times[nextIndex] || 0;
+    const span = nextIndex === 0 ? Math.max((clip.length - prevTime) + nextTime, 0.0001) : Math.max(nextTime - prevTime, 0.0001);
+    const elapsed = nextIndex === 0 ? (time >= prevTime ? time - prevTime : (clip.length - prevTime) + time) : time - prevTime;
+    const alpha = Math.max(0, Math.min(1, elapsed / span));
+
+    clip.tracks.forEach((track) => {
+      const a = track.frames[prevIndex] || track.frames[0];
+      const b = track.frames[nextIndex] || track.frames[0];
+      if (!a || !b) return;
+      track.node.position.set(
+        lerp(a.p.x, b.p.x, alpha),
+        lerp(a.p.y, b.p.y, alpha),
+        lerp(a.p.z, b.p.z, alpha),
+      );
+      unityAnimationTemp.qa.set(a.r.x, a.r.y, a.r.z, a.r.w);
+      unityAnimationTemp.qb.set(b.r.x, b.r.y, b.r.z, b.r.w);
+      track.node.quaternion.slerpQuaternions(unityAnimationTemp.qa, unityAnimationTemp.qb, alpha);
+      track.node.scale.set(
+        lerp(a.s.x, b.s.x, alpha),
+        lerp(a.s.y, b.s.y, alpha),
+        lerp(a.s.z, b.s.z, alpha),
+      );
+    });
+  }
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
   function animateSanta(delta) {
     if (!santa || !santa.visible) return;
+    if (!STATIC_SANTA_DIAGNOSTIC) return;
     if (santaActions && Object.keys(santaActions).length > 0) return;
     state.santaTime += delta;
     const t = state.santaTime;
