@@ -1,35 +1,59 @@
 (function () {
   const targetNames = ['1', '2', '3', '4', '5'];
+  const NAME_KEY = 'christmasChildName';
+
   let scanStatus;
   let loadingOverlay;
+  let flowLayer;
+  let nameGate;
+  let nameInput;
+  let nameError;
+  let nameBadge;
+  let santaCanvas;
+  let postcardButton;
+  let videoOverlay;
+  let christmasVideo;
+  let completeOverlay;
+
   let appStarted = false;
+  let threeReady = false;
+  let renderer;
+  let scene;
+  let camera;
+  let santa;
+  let mixer;
+  let clock;
 
-  function ensureUi() {
-    if (!loadingOverlay) {
-      loadingOverlay = document.createElement('div');
-      loadingOverlay.id = 'lag-loading-overlay';
-      loadingOverlay.innerHTML = `
-        <div class="lag-loading-card">
-          <img src="./assets/lag-logo.jpg" alt="LAG" />
-          <div class="lag-loading-text">Loading AR...</div>
-        </div>
-      `;
-      document.body.appendChild(loadingOverlay);
-    }
-
-    if (!scanStatus) {
-      scanStatus = document.createElement('div');
-      scanStatus.id = 'target-scan-status';
-      scanStatus.textContent = 'Scan target 1-5';
-      document.body.appendChild(scanStatus);
-    }
-  }
+  const state = {
+    childName: localStorage.getItem(NAME_KEY) || '',
+    experienceStarted: false,
+    postcardReady: false,
+    videoPlaying: false,
+    santaMode: 'hidden',
+    santaTime: 0,
+    speechWatchdog: null,
+    speechDeadlineAt: 0,
+  };
 
   function installStyles() {
     if (document.getElementById('christmas-target-config-style')) return;
     const style = document.createElement('style');
     style.id = 'christmas-target-config-style';
     style.textContent = `
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: Arial, Helvetica, sans-serif;
+        touch-action: none;
+      }
+
+      canvas {
+        touch-action: none;
+      }
+
       #lag-loading-overlay {
         position: fixed;
         inset: 0;
@@ -38,7 +62,6 @@
         place-items: center;
         background: #fff;
         color: #183a8f;
-        font-family: Arial, Helvetica, sans-serif;
       }
 
       #lag-loading-overlay.hidden {
@@ -63,6 +86,31 @@
         font-weight: 700;
       }
 
+      #christmas-flow-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        pointer-events: auto;
+        overflow: hidden;
+      }
+
+      #christmas-flow-layer.passthrough {
+        pointer-events: none;
+      }
+
+      #christmas-santa-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        pointer-events: none;
+      }
+
+      #christmas-santa-canvas.visible {
+        display: block;
+      }
+
       #target-scan-status {
         position: fixed;
         left: 50%;
@@ -78,8 +126,275 @@
         text-align: center;
         pointer-events: none;
       }
+
+      #target-scan-status.hidden {
+        display: none;
+      }
+
+      #name-badge {
+        position: fixed;
+        top: calc(18px + env(safe-area-inset-top, 0px));
+        right: 18px;
+        z-index: 2147483646;
+        padding: 12px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        background: rgba(0, 0, 0, 0.62);
+        color: #fff;
+        font: 800 16px/1 Arial, Helvetica, sans-serif;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+        pointer-events: auto;
+      }
+
+      #name-gate {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483645;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.72);
+        color: #fff;
+        pointer-events: auto;
+      }
+
+      #name-gate.hidden {
+        display: none;
+      }
+
+      .name-card {
+        width: min(88vw, 420px);
+        border-radius: 20px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.96);
+        color: #202020;
+        box-shadow: 0 18px 70px rgba(0, 0, 0, 0.35);
+      }
+
+      .name-card h1 {
+        margin: 0 0 10px;
+        font-size: 26px;
+        line-height: 1.15;
+      }
+
+      .name-card p {
+        margin: 0 0 18px;
+        color: #555;
+        font-size: 15px;
+      }
+
+      .name-card input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #c8c8c8;
+        border-radius: 14px;
+        padding: 14px 16px;
+        font-size: 20px;
+        outline: none;
+      }
+
+      .name-card button {
+        width: 100%;
+        margin-top: 14px;
+        border: 0;
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: #183a8f;
+        color: #fff;
+        font: 800 18px/1 Arial, Helvetica, sans-serif;
+      }
+
+      .name-error {
+        min-height: 18px;
+        margin-top: 8px;
+        color: #b3261e;
+        font-size: 13px;
+      }
+
+      #postcard-button {
+        position: fixed;
+        left: 50%;
+        bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+        z-index: 2147483644;
+        transform: translateX(-50%);
+        width: min(78vw, 440px);
+        min-height: 112px;
+        border: 0;
+        border-radius: 10px;
+        background: #fff1cf;
+        color: #9a2d27;
+        font: 800 24px/1.2 Arial, Helvetica, sans-serif;
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+        pointer-events: auto;
+        overflow: hidden;
+      }
+
+      #postcard-button::before, #postcard-button::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0;
+        height: 70%;
+        border-top: 2px solid rgba(180, 110, 80, 0.22);
+        transform-origin: center bottom;
+      }
+
+      #postcard-button::before { transform: skewY(24deg); }
+      #postcard-button::after { transform: skewY(-24deg); }
+      #postcard-button.hidden { display: none; }
+      #postcard-button.opening { animation: postcard-open 0.48s ease forwards; }
+
+      @keyframes postcard-open {
+        to { transform: translateX(-50%) scale(1.08) rotateX(28deg); opacity: 0; }
+      }
+
+      #christmas-video-overlay, #complete-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483645;
+        display: grid;
+        place-items: center;
+        background: #000;
+        pointer-events: auto;
+      }
+
+      #christmas-video-overlay.hidden, #complete-overlay.hidden {
+        display: none;
+      }
+
+      #christmas-video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+      }
+
+      .complete-card {
+        width: min(86vw, 460px);
+        padding: 30px 22px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        color: #b8222d;
+        text-align: center;
+        box-shadow: 0 18px 70px rgba(0, 0, 0, 0.38);
+      }
+
+      .complete-card h2 {
+        margin: 0 0 18px;
+        font-size: 32px;
+      }
+
+      .complete-card button {
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 26px;
+        background: #183a8f;
+        color: #fff;
+        font: 800 18px/1 Arial, Helvetica, sans-serif;
+      }
     `;
     document.head.appendChild(style);
+  }
+
+  function ensureUi() {
+    if (!loadingOverlay) {
+      loadingOverlay = document.createElement('div');
+      loadingOverlay.id = 'lag-loading-overlay';
+      loadingOverlay.innerHTML = `
+        <div class="lag-loading-card">
+          <img src="./assets/lag-logo.jpg" alt="LAG" />
+          <div class="lag-loading-text">Loading AR...</div>
+        </div>
+      `;
+      document.body.appendChild(loadingOverlay);
+    }
+
+    if (!flowLayer) {
+      flowLayer = document.createElement('div');
+      flowLayer.id = 'christmas-flow-layer';
+      flowLayer.innerHTML = `
+        <canvas id="christmas-santa-canvas"></canvas>
+        <button id="name-badge" type="button"></button>
+        <div id="name-gate" class="hidden">
+          <div class="name-card">
+            <h1>Enter child name</h1>
+            <p>Santa will say this name before the greeting.</p>
+            <input id="child-name-input" type="text" maxlength="24" autocomplete="given-name" placeholder="Child name" />
+            <div id="name-error" class="name-error"></div>
+            <button id="save-name-button" type="button">Start scanning</button>
+          </div>
+        </div>
+        <button id="postcard-button" class="hidden" type="button">Open Santa's postcard</button>
+        <div id="christmas-video-overlay" class="hidden">
+          <video id="christmas-video" src="./assets/Christmas.mp4" playsinline webkit-playsinline preload="auto"></video>
+        </div>
+        <div id="complete-overlay" class="hidden">
+          <div class="complete-card">
+            <h2>Merry Christmas!</h2>
+            <button id="restart-button" type="button">Restart</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(flowLayer);
+
+      santaCanvas = document.getElementById('christmas-santa-canvas');
+      nameGate = document.getElementById('name-gate');
+      nameInput = document.getElementById('child-name-input');
+      nameError = document.getElementById('name-error');
+      nameBadge = document.getElementById('name-badge');
+      postcardButton = document.getElementById('postcard-button');
+      videoOverlay = document.getElementById('christmas-video-overlay');
+      christmasVideo = document.getElementById('christmas-video');
+      completeOverlay = document.getElementById('complete-overlay');
+
+      document.getElementById('save-name-button').addEventListener('click', saveName);
+      nameInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') saveName();
+      });
+      nameBadge.addEventListener('click', () => showNameGate(true));
+      postcardButton.addEventListener('click', openPostcard);
+      christmasVideo.addEventListener('ended', showComplete);
+      document.getElementById('restart-button').addEventListener('click', restartExperience);
+    }
+
+    if (!scanStatus) {
+      scanStatus = document.createElement('div');
+      scanStatus.id = 'target-scan-status';
+      scanStatus.textContent = 'Scan target 1-5';
+      document.body.appendChild(scanStatus);
+    }
+
+    refreshNameBadge();
+    if (!state.childName) showNameGate(false);
+  }
+
+  function refreshNameBadge() {
+    if (nameBadge) nameBadge.textContent = state.childName ? `Name: ${state.childName}` : 'Set name';
+  }
+
+  function showNameGate(focus) {
+    if (!nameInput || !nameGate) return;
+    nameInput.value = state.childName;
+    nameGate.classList.remove('hidden');
+    if (focus) setTimeout(() => nameInput.focus(), 80);
+  }
+
+  function saveName() {
+    const clean = normalizeName(nameInput.value);
+    if (!clean) {
+      nameError.textContent = 'Please enter a child name.';
+      return;
+    }
+    state.childName = clean;
+    localStorage.setItem(NAME_KEY, clean);
+    nameError.textContent = '';
+    nameGate.classList.add('hidden');
+    refreshNameBadge();
+    unlockSpeech();
+    setScanStatus('Scan target 1-5');
+  }
+
+  function normalizeName(raw) {
+    return String(raw || '').trim().replace(/\s+/g, ' ').slice(0, 24);
   }
 
   function hideLoadingOverlay() {
@@ -89,6 +404,14 @@
   function setScanStatus(text) {
     ensureUi();
     scanStatus.textContent = text;
+  }
+
+  function hideScanStatus() {
+    if (scanStatus) scanStatus.classList.add('hidden');
+  }
+
+  function showScanStatus() {
+    if (scanStatus) scanStatus.classList.remove('hidden');
   }
 
   function startApp() {
@@ -111,9 +434,7 @@
     const targets = await Promise.all(
       targetNames.map(async (name) => {
         const response = await fetch(`./image-targets/${name}.json`, { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`Failed to load image target ${name}: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Failed to load image target ${name}: ${response.status}`);
         return response.json();
       }),
     );
@@ -124,45 +445,42 @@
     try {
       installStyles();
       ensureUi();
+      await initThree();
       const imageTargetData = await loadImageTargets();
       if (!window.XR8 || !window.XR8.XrController) {
         window.addEventListener('xrloaded', configureImageTargets, { once: true });
         return;
       }
 
-      const config = {
+      window.__christmasImageTargetData = imageTargetData;
+      window.XR8.XrController.configure({
         disableWorldTracking: true,
         imageTargetData,
         imageTargets: imageTargetData,
-      };
-      window.__christmasImageTargetData = imageTargetData;
-      window.XR8.XrController.configure(config);
+      });
 
       window.XR8.addCameraPipelineModule({
-        name: 'christmas-image-target-debug',
+        name: 'christmas-image-target-flow',
         onStart: () => {
           hideLoadingOverlay();
-          setScanStatus('Scan target 1-5');
+          showScanStatus();
+          setScanStatus(state.childName ? 'Scan target 1-5' : 'Set name first');
         },
         listeners: [
           {
             event: 'reality.imagefound',
-            process: ({ detail }) => {
-              console.log('[Christmas AR] image found:', detail && detail.name);
-              setScanStatus(`Target found: ${detail && detail.name ? detail.name : 'unknown'}`);
-            },
+            process: ({ detail }) => handleTargetFound(detail && detail.name),
           },
           {
             event: 'reality.imageupdated',
             process: ({ detail }) => {
-              if (detail && detail.name) setScanStatus(`Tracking: ${detail.name}`);
+              if (!state.experienceStarted && detail && detail.name) setScanStatus(`Tracking: ${detail.name}`);
             },
           },
           {
             event: 'reality.imagelost',
-            process: ({ detail }) => {
-              console.log('[Christmas AR] image lost:', detail && detail.name);
-              setScanStatus('Scan target 1-5');
+            process: () => {
+              if (!state.experienceStarted) setScanStatus(state.childName ? 'Scan target 1-5' : 'Set name first');
             },
           },
         ],
@@ -176,13 +494,272 @@
     }
   }
 
+  async function initThree() {
+    if (threeReady) return;
+    const THREE = await import('https://unpkg.com/three@0.161.0/build/three.module.js');
+    const { GLTFLoader } = await import('https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js');
+    window.__ChristmasTHREE = THREE;
+
+    renderer = new THREE.WebGLRenderer({ canvas: santaCanvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setClearColor(0x000000, 0);
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+    camera.position.set(0, 0.12, 7.2);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x8892a6, 2.25));
+    const key = new THREE.DirectionalLight(0xffffff, 2.0);
+    key.position.set(3, 4, 5);
+    scene.add(key);
+
+    santa = new THREE.Group();
+    santa.visible = false;
+    scene.add(santa);
+
+    const loader = new GLTFLoader();
+    loader.load('./assets/Santa.glb', (gltf) => {
+      const modelRoot = normalizeLoadedSanta(gltf.scene, THREE);
+      modelRoot.visible = santa.visible;
+      scene.remove(santa);
+      santa = modelRoot;
+      scene.add(santa);
+      if (gltf.animations && gltf.animations.length > 0) {
+        mixer = new THREE.AnimationMixer(gltf.scene);
+        const action = mixer.clipAction(gltf.animations[0]);
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        action.play();
+      }
+    }, undefined, (error) => {
+      console.warn('[Christmas AR] Failed to load Santa.glb', error);
+    });
+
+    clock = new THREE.Clock();
+    threeReady = true;
+    resizeSantaCanvas();
+    window.addEventListener('resize', resizeSantaCanvas, { passive: true });
+    requestAnimationFrame(renderSanta);
+  }
+
+  function normalizeLoadedSanta(model, THREE) {
+    const root = new THREE.Group();
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.frustumCulled = false;
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+          if (material) {
+            material.side = THREE.DoubleSide;
+            material.needsUpdate = true;
+          }
+        });
+      }
+    });
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+    const height = Math.max(size.y, 0.001);
+    const scale = 3.55 / height;
+    model.scale.setScalar(scale);
+    model.position.set(-center.x * scale, -center.y * scale - 0.26, -center.z * scale);
+    root.add(model);
+    root.position.set(0, -0.15, 0);
+    return root;
+  }
+
+  function resizeSantaCanvas() {
+    if (!renderer || !camera) return;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  }
+
+  function renderSanta() {
+    if (renderer && scene && camera) {
+      const delta = clock ? clock.getDelta() : 0.016;
+      if (mixer) mixer.update(delta);
+      animateSanta(delta);
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(renderSanta);
+  }
+
+  function animateSanta(delta) {
+    if (!santa || !santa.visible) return;
+    state.santaTime += delta;
+    const t = state.santaTime;
+    santa.rotation.y = Math.sin(t * 1.5) * 0.12;
+    santa.position.y = -0.14 + Math.sin(t * 4.6) * 0.025;
+  }
+
+  function handleTargetFound(targetName) {
+    if (!targetNames.includes(String(targetName))) return;
+    if (!state.childName) {
+      setScanStatus('Set name first');
+      showNameGate(true);
+      return;
+    }
+    if (state.experienceStarted) return;
+    startChristmasFlow(targetName);
+  }
+
+  function startChristmasFlow(targetName) {
+    console.log('[Christmas AR] start flow:', targetName);
+    state.experienceStarted = true;
+    state.postcardReady = false;
+    state.videoPlaying = false;
+    state.santaMode = 'dance';
+    state.santaTime = 0;
+    hideScanStatus();
+    postcardButton.classList.add('hidden');
+    postcardButton.classList.remove('opening');
+    videoOverlay.classList.add('hidden');
+    completeOverlay.classList.add('hidden');
+    santaCanvas.classList.add('visible');
+    if (santa) santa.visible = true;
+    startSpeechWatchdog(7600);
+    speakIntro().then(finishSpeechStep);
+  }
+
+  function startSpeechWatchdog(timeoutMs) {
+    stopSpeechWatchdog();
+    state.speechDeadlineAt = performance.now() + timeoutMs;
+    state.speechWatchdog = window.setInterval(() => {
+      if (!state.experienceStarted || state.postcardReady) {
+        stopSpeechWatchdog();
+        return;
+      }
+      if (performance.now() >= state.speechDeadlineAt) finishSpeechStep();
+    }, 250);
+  }
+
+  function stopSpeechWatchdog() {
+    if (state.speechWatchdog) {
+      clearInterval(state.speechWatchdog);
+      state.speechWatchdog = null;
+    }
+  }
+
+  function finishSpeechStep() {
+    if (!state.experienceStarted || state.postcardReady) return;
+    stopSpeechWatchdog();
+    try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch {}
+    state.postcardReady = true;
+    state.santaMode = 'wave';
+    postcardButton.classList.remove('hidden');
+  }
+
+  function unlockSpeech() {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      const utterance = new SpeechSynthesisUtterance('');
+      utterance.volume = 0;
+      speechSynthesis.speak(utterance);
+      speechSynthesis.cancel();
+    } catch {}
+  }
+
+  function speakIntro() {
+    return new Promise((resolve) => {
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        resolve();
+      };
+      const fallbackTimer = setTimeout(finish, 7600);
+      const done = () => {
+        clearTimeout(fallbackTimer);
+        finish();
+      };
+
+      if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+        setTimeout(done, 3800);
+        return;
+      }
+
+      try { speechSynthesis.cancel(); } catch {}
+      const utterance = new SpeechSynthesisUtterance(`Hey! ${nameForSpeech(state.childName)}. Merry Christmas! Open Santa's postcard!`);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.82;
+      utterance.pitch = 0.84;
+      utterance.volume = 1;
+      const voices = speechSynthesis.getVoices ? speechSynthesis.getVoices() : [];
+      const voice = voices.find((item) => item.lang && item.lang.toLowerCase().startsWith('en')) || voices[0];
+      if (voice) utterance.voice = voice;
+      utterance.onend = done;
+      utterance.onerror = done;
+      setTimeout(() => {
+        try { speechSynthesis.speak(utterance); } catch { done(); }
+      }, 500);
+    });
+  }
+
+  function nameForSpeech(name) {
+    const raw = normalizeName(name);
+    const lower = raw.toLowerCase();
+    const special = {
+      gaga: 'Gah-gah',
+      saya: 'Sah-yah',
+    };
+    if (special[lower]) return special[lower];
+    if (/^[a-z]{2,}$/i.test(raw)) return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    return raw;
+  }
+
+  function openPostcard() {
+    if (!state.postcardReady || state.videoPlaying) return;
+    state.videoPlaying = true;
+    postcardButton.classList.add('opening');
+    setTimeout(async () => {
+      postcardButton.classList.add('hidden');
+      santaCanvas.classList.remove('visible');
+      if (santa) santa.visible = false;
+      videoOverlay.classList.remove('hidden');
+      christmasVideo.loop = false;
+      christmasVideo.currentTime = 0;
+      try {
+        await christmasVideo.play();
+      } catch (error) {
+        console.warn('[Christmas AR] video play blocked:', error);
+      }
+    }, 280);
+  }
+
+  function showComplete() {
+    videoOverlay.classList.add('hidden');
+    completeOverlay.classList.remove('hidden');
+  }
+
+  function restartExperience() {
+    try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch {}
+    stopSpeechWatchdog();
+    christmasVideo.pause();
+    christmasVideo.currentTime = 0;
+    completeOverlay.classList.add('hidden');
+    videoOverlay.classList.add('hidden');
+    postcardButton.classList.add('hidden');
+    postcardButton.classList.remove('opening');
+    santaCanvas.classList.remove('visible');
+    if (santa) santa.visible = false;
+    state.experienceStarted = false;
+    state.postcardReady = false;
+    state.videoPlaying = false;
+    state.santaMode = 'hidden';
+    showScanStatus();
+    setScanStatus('Scan target 1-5');
+  }
+
   installStyles();
   ensureUi();
   setTimeout(hideLoadingOverlay, 9000);
 
-  if (window.XR8) {
-    configureImageTargets();
-  } else {
-    window.addEventListener('xrloaded', configureImageTargets, { once: true });
-  }
+  if (window.XR8) configureImageTargets();
+  else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
+
