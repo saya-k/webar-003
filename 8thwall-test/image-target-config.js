@@ -90,6 +90,13 @@
     scanStatus.textContent = text;
   }
 
+  function errorText(error) {
+    if (!error) return 'Unknown error';
+    if (error.stack) return error.stack.split('\n').slice(0, 2).join(' ');
+    if (error.message) return error.message;
+    return String(error);
+  }
+
   async function loadImageTargets() {
     const targets = await Promise.all(
       targetNames.map(async (name) => {
@@ -113,10 +120,13 @@
         return;
       }
 
-      window.XR8.XrController.configure({
+      const config = {
         disableWorldTracking: true,
         imageTargetData,
-      });
+        imageTargets: imageTargetData,
+      };
+      window.__christmasImageTargetData = imageTargetData;
+      window.XR8.XrController.configure(config);
 
       window.XR8.addCameraPipelineModule({
         name: 'christmas-image-target-debug',
@@ -149,7 +159,7 @@
       });
     } catch (error) {
       console.error('[Christmas AR] image target configuration failed:', error);
-      setScanStatus('Image target setup failed');
+      setScanStatus(`Image target setup failed: ${errorText(error)}`);
       setTimeout(hideLoadingOverlay, 1200);
     }
   }
