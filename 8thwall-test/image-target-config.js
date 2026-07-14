@@ -1,6 +1,7 @@
 (function () {
   const targetNames = ['1', '2', '3', '4', '5'];
   const NAME_KEY = 'christmasChildName';
+  const STATIC_SANTA_DIAGNOSTIC = true;
 
   let scanStatus;
   let loadingOverlay;
@@ -529,7 +530,7 @@
       scene.add(santa);
       santaActions = {};
       currentSantaAction = null;
-      if (gltf.animations && gltf.animations.length > 0) {
+      if (!STATIC_SANTA_DIAGNOSTIC && gltf.animations && gltf.animations.length > 0) {
         mixer = new THREE.AnimationMixer(gltf.scene);
         gltf.animations.forEach((clip) => {
           const action = mixer.clipAction(clip);
@@ -589,6 +590,7 @@
 
   function playSantaAction(name, fadeSeconds = 0.3) {
     desiredSantaAction = name;
+    if (STATIC_SANTA_DIAGNOSTIC) return;
     if (!mixer || !santaActions[name]) return;
     const next = santaActions[name];
     if (currentSantaAction === next) return;
@@ -789,6 +791,7 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
 
 
