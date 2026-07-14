@@ -616,6 +616,7 @@
     unitySantaClips = {};
     (samples.clips || []).forEach((clip) => {
       const tracks = (clip.bones || [])
+        .filter((bone) => bone.name !== 'Root')
         .map((bone) => ({ name: bone.name, node: nodesByName[bone.name], frames: bone.frames || [] }))
         .filter((track) => track.node && track.frames.length > 0);
       unitySantaClips[clip.name] = {
