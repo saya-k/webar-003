@@ -542,14 +542,11 @@
           action.setLoop(THREE.LoopRepeat, Infinity);
           action.clampWhenFinished = false;
           santaActions[clip.name] = action;
+          if (clip.name.indexOf('DanceIdle') !== -1) santaActions.Santa_DanceIdle = action;
+          if (clip.name.indexOf('WaveHello') !== -1) santaActions.Santa_WaveHello = action;
         });
-      }
-      loadSantaAnimationSamples().then((samples) => {
-        setupUnitySantaAnimations(samples, santa, THREE);
         playSantaAction(desiredSantaAction, 0);
-      }).catch((error) => {
-        console.warn('[Christmas AR] Failed to load Unity Santa animations', error);
-      });
+      }
     }, undefined, (error) => {
       console.warn('[Christmas AR] Failed to load Santa.glb', error);
     });
@@ -630,13 +627,7 @@
   }
   function playSantaAction(name, fadeSeconds = 0.3) {
     desiredSantaAction = name;
-    if (unitySantaClips[name]) {
-      activeUnityClip = unitySantaClips[name];
-      activeUnityTime = 0;
-      currentSantaAction = name;
-      applyUnitySantaAnimation(activeUnityClip, 0);
-      return;
-    }
+    activeUnityClip = null;
     if (!mixer || !santaActions[name]) return;
     const next = santaActions[name];
     if (currentSantaAction === next) return;
@@ -877,3 +868,4 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
