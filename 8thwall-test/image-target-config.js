@@ -2,6 +2,7 @@
   const targetNames = ['1', '2', '3', '4', '5'];
   const NAME_KEY = 'christmasChildName';
   const STATIC_SANTA_DIAGNOSTIC = true;
+  const SANTA_BASE_Y = -0.48;
 
   let scanStatus;
   let loadingOverlay;
@@ -575,7 +576,7 @@
     model.scale.setScalar(scale);
     model.position.set(-center.x * scale, -center.y * scale - 0.82, -center.z * scale);
     root.add(model);
-    root.position.set(0, -0.48, 0);
+    root.position.set(0, SANTA_BASE_Y, 0);
     return root;
   }
 
@@ -621,7 +622,7 @@
     state.santaTime += delta;
     const t = state.santaTime;
     santa.rotation.y = Math.sin(t * 1.5) * 0.12;
-    santa.position.y = -0.14 + Math.sin(t * 4.6) * 0.025;
+    santa.position.y = SANTA_BASE_Y + Math.sin(t * 4.6) * 0.025;
   }
 
   function handleTargetFound(targetName) {
