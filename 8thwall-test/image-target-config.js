@@ -615,6 +615,9 @@
 
   async function loadSantaAnimationSamples() {
     const response = await fetch('./assets/santa-animation-samples.json?v=unity-anim-1', { cache: 'no-store' });
+    if (response.status === 404) {
+      return { clips: [] };
+    }
     if (!response.ok) throw new Error(`Failed to load Santa animation samples: ${response.status}`);
     return response.json();
   }
