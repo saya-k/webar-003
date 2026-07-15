@@ -542,7 +542,7 @@
           action.setLoop(THREE.LoopRepeat, Infinity);
           action.clampWhenFinished = false;
           santaActions[clip.name] = action;
-          if (clip.name.indexOf('DanceIdle') !== -1) santaActions.Santa_DanceIdle = action;
+          if (clip.name.indexOf('Hip_Hop_Dancing_1') !== -1 || clip.name.indexOf('DanceIdle') !== -1) santaActions.Santa_DanceIdle = action;
           if (clip.name.indexOf('WaveHello') !== -1) santaActions.Santa_WaveHello = action;
         });
         playSantaAction(desiredSantaAction, 0);
@@ -868,4 +868,5 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
