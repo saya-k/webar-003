@@ -402,10 +402,8 @@
     nameGate.classList.add('hidden');
     refreshNameBadge();
     unlockSpeech();
-    showLoadingOverlay();
     showScanStatus();
     setScanStatus('Scan target 1-5');
-    if (!appStarted) configureImageTargets();
   }
 
   function normalizeName(raw) {
@@ -873,17 +871,18 @@
 
   installStyles();
   ensureUi();
-
-  if (state.childName) {
-    setTimeout(hideLoadingOverlay, 9000);
-    if (window.XR8) configureImageTargets();
-    else window.addEventListener('xrloaded', configureImageTargets, { once: true });
-  } else {
+  setTimeout(hideLoadingOverlay, 9000);
+  if (!state.childName) {
     hideLoadingOverlay();
     showScanStatus();
     setScanStatus('Set name first');
   }
+
+  if (window.XR8) configureImageTargets();
+  else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
+
 
 
 
