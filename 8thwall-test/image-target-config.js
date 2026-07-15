@@ -172,7 +172,10 @@
       }
 
       .name-card {
-        width: min(88vw, 420px);
+        box-sizing: border-box;
+        width: min(calc(100vw - 32px), 420px);
+        max-height: calc(100dvh - 32px);
+        overflow: auto;
         border-radius: 20px;
         padding: 24px;
         background: rgba(255, 255, 255, 0.96);
@@ -399,7 +402,10 @@
     nameGate.classList.add('hidden');
     refreshNameBadge();
     unlockSpeech();
+    showLoadingOverlay();
+    showScanStatus();
     setScanStatus('Scan target 1-5');
+    if (!appStarted) configureImageTargets();
   }
 
   function normalizeName(raw) {
@@ -408,6 +414,10 @@
 
   function hideLoadingOverlay() {
     if (loadingOverlay) loadingOverlay.classList.add('hidden');
+  }
+
+  function showLoadingOverlay() {
+    if (loadingOverlay) loadingOverlay.classList.remove('hidden');
   }
 
   function setScanStatus(text) {
@@ -863,10 +873,19 @@
 
   installStyles();
   ensureUi();
-  setTimeout(hideLoadingOverlay, 9000);
 
-  if (window.XR8) configureImageTargets();
-  else window.addEventListener('xrloaded', configureImageTargets, { once: true });
+  if (state.childName) {
+    setTimeout(hideLoadingOverlay, 9000);
+    if (window.XR8) configureImageTargets();
+    else window.addEventListener('xrloaded', configureImageTargets, { once: true });
+  } else {
+    hideLoadingOverlay();
+    showScanStatus();
+    setScanStatus('Set name first');
+  }
 })();
+
+
+
 
 
