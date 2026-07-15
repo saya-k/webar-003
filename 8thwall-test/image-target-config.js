@@ -18,6 +18,8 @@
   let completeOverlay;
 
   let appStarted = false;
+  let cameraStarted = false;
+  let waitingForCameraReady = false;
   let threeReady = false;
   let renderer;
   let scene;
@@ -404,6 +406,12 @@
     unlockSpeech();
     showScanStatus();
     setScanStatus('Scan target 1-5');
+    if (cameraStarted) {
+      hideLoadingOverlay();
+    } else {
+      waitingForCameraReady = true;
+      showLoadingOverlay();
+    }
   }
 
   function normalizeName(raw) {
@@ -479,6 +487,8 @@
       window.XR8.addCameraPipelineModule({
         name: 'christmas-image-target-flow',
         onStart: () => {
+          cameraStarted = true;
+          waitingForCameraReady = false;
           hideLoadingOverlay();
           showScanStatus();
           setScanStatus(state.childName ? 'Scan target 1-5' : 'Set name first');
@@ -871,7 +881,9 @@
 
   installStyles();
   ensureUi();
-  setTimeout(hideLoadingOverlay, 9000);
+  setTimeout(() => {
+    if (!waitingForCameraReady) hideLoadingOverlay();
+  }, 9000);
   if (!state.childName) {
     hideLoadingOverlay();
     showScanStatus();
@@ -881,6 +893,7 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
 
 
