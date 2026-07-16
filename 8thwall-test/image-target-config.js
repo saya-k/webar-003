@@ -3,7 +3,7 @@
   const NAME_KEY = 'christmasChildName';
   const STATIC_SANTA_DIAGNOSTIC = false;
   const SANTA_BASE_X = 0.25;
-  const SANTA_BASE_Y = -0.55;
+  const SANTA_BASE_Y = 0;
 
   let scanStatus;
   let loadingOverlay;
