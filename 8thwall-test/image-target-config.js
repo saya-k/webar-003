@@ -2,6 +2,7 @@
   const targetNames = ['1', '2', '3', '4', '5'];
   const NAME_KEY = 'christmasChildName';
   const STATIC_SANTA_DIAGNOSTIC = false;
+  const SANTA_BASE_X = 0.25;
   const SANTA_BASE_Y = -1;
 
   let scanStatus;
@@ -600,7 +601,7 @@
     model.scale.setScalar(scale);
     model.position.set(-center.x * scale, -center.y * scale - 0.82, -center.z * scale);
     root.add(model);
-    root.position.set(0, SANTA_BASE_Y, 0);
+    root.position.set(SANTA_BASE_X, SANTA_BASE_Y, 0);
     return root;
   }
 
