@@ -545,7 +545,7 @@
     scene.add(santa);
 
     const loader = new GLTFLoader();
-    loader.load('./assets/Santa.glb', (gltf) => {
+    loader.load('./assets/GingerbreadSanta.glb', (gltf) => {
       const modelRoot = normalizeLoadedSanta(gltf.scene, THREE);
       modelRoot.visible = santa.visible;
       scene.remove(santa);
@@ -566,7 +566,7 @@
         playSantaAction(desiredSantaAction, 0);
       }
     }, undefined, (error) => {
-      console.warn('[Christmas AR] Failed to load Santa.glb', error);
+      console.warn('[Christmas AR] Failed to load GingerbreadSanta.glb', error);
     });
 
     clock = new THREE.Clock();
@@ -896,6 +896,7 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
 
 
